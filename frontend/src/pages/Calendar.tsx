@@ -35,16 +35,25 @@ export function Calendar() {
   const [currentView, setCurrentView] = useState<CalendarView>("dayGridMonth");
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
 
+  const fetchTasksData = async () => {
+    if (!userId) return;
+    const token = await getToken();
+    const result = await axios.get(`http://localhost:5000/tasks/${userId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setTasks(result.data.tasks ?? []);
+  };
+
   useEffect(() => {
     if (!userId) return;
-    const fetchTasksData = async () => {
+    const loadTasks = async () => {
       const token = await getToken();
       const result = await axios.get(`http://localhost:5000/tasks/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setTasks(result.data.tasks ?? []);
     };
-    fetchTasksData();
+    loadTasks();
   }, [userId]);
 
   function changeView(view: CalendarView) {
@@ -92,6 +101,7 @@ export function Calendar() {
         open={isNewTaskOpen}
         onClose={() => setIsNewTaskOpen(false)}
         initialDate={selectedDate}
+        onTaskCreated={fetchTasksData}
       />
     </div>
   );

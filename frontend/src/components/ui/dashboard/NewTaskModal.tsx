@@ -28,9 +28,10 @@ type NewTaskModalProps = {
   open: boolean;
   onClose: () => void;
   initialDate?: string;
+  onTaskCreated?: () => void;
 };
 
-export function NewTaskModal({ open, onClose, initialDate }: NewTaskModalProps) {
+export function NewTaskModal({ open, onClose, initialDate, onTaskCreated }: NewTaskModalProps) {
   const [type, setType] = useState<"Assignments" | "Tasks" | "Events" | string>("Assignments")
   const [title, setTitle] = useState("")
   const [details, setDetails] = useState("")
@@ -202,5 +203,6 @@ export function NewTaskModal({ open, onClose, initialDate }: NewTaskModalProps) 
     const result = await axios.post(`http://localhost:5000/add/tasks/${userId}`, {title: title, details: details, due: date, type: type}, {headers: {Authorization: `Bearer ${token}`}})
     setSuccess(result.data.status)
     setSuccessMessage(result.data.message)
+    if (result.data.status) onTaskCreated?.()
   }
 }
