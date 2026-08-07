@@ -1,3 +1,5 @@
+import { useAuth } from "@clerk/react";
+import { Navigate } from "react-router-dom";
 import { LeftSidebar } from "../components/ui/dashboard/LeftSidebar";
 import { TopBar } from "../components/ui/dashboard/TopBar";
 import { PriorityQueueCard } from "../components/ui/dashboard/PriorityQueueCard";
@@ -6,6 +8,16 @@ import { QuickJumpCard } from "../components/ui/dashboard/QuickJumpCard";
 import { StudyVelocityCard } from "../components/ui/dashboard/StudyVelocityCard";
 
 export function Dashboard() {
+  const { isLoaded, isSignedIn } = useAuth();
+
+  if (!isLoaded) {
+    return <div className="min-h-screen bg-[#0b0b12]" />;
+  }
+
+  if (!isSignedIn) {
+    return <Navigate to="/intermission" replace />;
+  }
+
   return (
     <div className="flex min-h-screen bg-[#0b0b12]">
       <LeftSidebar />
