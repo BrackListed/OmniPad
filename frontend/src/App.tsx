@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Dashboard } from "./pages/Dashboard";
 import { Intermission } from "./pages/Intermission";
+import { Calendar } from "./pages/Calendar";
 
 export default function App(){
   return(
@@ -8,6 +9,7 @@ export default function App(){
       <Routes>
         <Route path = "/" element={<Dashboard/>}></Route>
         <Route path = "/intermission" element={<Intermission/>}/>
+        <Route path = "/calendar" element={<Calendar/>}/>
       </Routes>
     </BrowserRouter>
   )

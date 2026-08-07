@@ -16,6 +16,7 @@
     "@fullcalendar/daygrid": "^6.1.21",
     "@fullcalendar/interaction": "^6.1.21",
     "@fullcalendar/react": "^6.1.21",
+    "@fullcalendar/timegrid": "^6.1.21",
     "@tailwindcss/vite": "^4.3.3",
     "axios": "^1.19.0",
     "class-variance-authority": "^0.7.1",

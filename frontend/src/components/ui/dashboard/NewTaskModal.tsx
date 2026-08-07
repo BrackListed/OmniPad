@@ -27,14 +27,21 @@ const calendarThemeVars = {
 type NewTaskModalProps = {
   open: boolean;
   onClose: () => void;
+  initialDate?: string;
 };
 
-export function NewTaskModal({ open, onClose }: NewTaskModalProps) {
+export function NewTaskModal({ open, onClose, initialDate }: NewTaskModalProps) {
   const [type, setType] = useState<"Assignments" | "Tasks" | "Events" | string>("Assignments")
   const [title, setTitle] = useState("")
   const [details, setDetails] = useState("")
   const [date, setDate] = useState("")
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
+
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open && initialDate) setDate(initialDate)
+  }
   const { userId, getToken } = useAuth()
   const [success, setSuccess] = useState<undefined | boolean>(undefined)
   const [successMessage, setSuccessMessage] = useState("")
