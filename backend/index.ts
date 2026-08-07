@@ -47,5 +47,21 @@ app.get("/test", (req, res) => {
   res.json({ message: "Backend is alive and connected!" })
 })
 
+app.post("/add/tasks/:userId", async(req, res) => {
+  const {userId} = req.params
+  const {title, details, due, type} = req.body
+  try{
+    const id = await pool.query("SELECT id FROM users WHERE clerk_user_id = $1", [userId])
+    await pool.query("INSERT INTO tasks(user_id, title, details, due, type) VALUES($1, $2, $3, $4, $5)", [id.rows[0].id, title, details, due, type])
+    res.json({status: true, message: "Tasks inserted into database successfully!"})
+  } catch(err){
+    console.error(err)
+    res.status(500).json({
+      status: false,
+      message: "Tasks failed to be inserted into the database"
+    })
+  }
+})
+
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => console.log(`Server listening on port ${PORT}`))

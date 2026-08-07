@@ -16,7 +16,7 @@ export const tasks = pgTable("tasks", {
     user_id: uuid("user_id").references(() => users.id, {onDelete: "cascade"}),
     title: text("title").notNull(),
     details: text("details"),
-    due: text("date"),
+    due: text("due"),
     type: text("type", {enum: ['Assignments', 'Tasks', 'Events']}),
     created_at: timestamp("created_at", {withTimezone: true}).defaultNow()
 })
