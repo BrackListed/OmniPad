@@ -43,8 +43,19 @@ app.post('/webhooks/clerk', express.raw({ type: 'application/json' }), async (re
 app.use(clerkMiddleware())
 app.use(express.json())
 
-app.get("/test", (req, res) => {
-  res.json({ message: "Backend is alive and connected!" })
+app.get("/tasks/:userId", async(req, res) => {
+  const {userId} = req.params
+  try{
+    const id = await pool.query("SELECT id FROM users WHERE clerk_user_id = $1", [userId])
+    const result = await pool.query("SELECT * FROM tasks where user_id = $1 ORDER BY due DESC", [id.rows[0].id])
+    res.json({isLoading: false, tasks: result.rows})
+  } catch(err){
+    console.error(err)
+    res.status(500).json({
+      isLoading: true,
+      message: "Tasks failed to load"
+    })
+  }
 })
 
 app.post("/add/tasks/:userId", async(req, res) => {
