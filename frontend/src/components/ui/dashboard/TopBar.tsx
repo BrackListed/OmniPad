@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Bell, Flame, Plus, Search } from "lucide-react";
 import { useUser } from "@clerk/react";
+import { NewTaskModal } from "./NewTaskModal";
 
 export function TopBar() {
   const { user } = useUser();
   const displayName = user?.username ?? user?.firstName ?? "there";
+  const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
 
   return (
     <div className="flex flex-col gap-5">
@@ -37,7 +40,10 @@ export function TopBar() {
           />
         </div>
 
-        <button className="flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-500">
+        <button
+          onClick={() => setIsNewTaskOpen(true)}
+          className="flex items-center gap-1.5 whitespace-nowrap rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-500"
+        >
           <Plus className="h-4 w-4" strokeWidth={2.5} />
           New Task / Upload Module
         </button>
@@ -51,6 +57,8 @@ export function TopBar() {
           Check-in
         </button>
       </div>
+
+      <NewTaskModal open={isNewTaskOpen} onClose={() => setIsNewTaskOpen(false)} />
     </div>
   );
 }
