@@ -1,5 +1,6 @@
-import { Layers, LayoutGrid, Calendar, BookOpen, LineChart, Settings } from "lucide-react";
+import { LayoutGrid, Calendar, BookOpen, LineChart, Settings } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { UserButton } from "@clerk/react";
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -13,9 +14,7 @@ export function LeftSidebar() {
     <aside className="flex h-screen w-60 shrink-0 flex-col justify-between border-r border-white/10 bg-[#0b0b12] px-3 py-5">
       <div className="flex flex-col gap-6">
         <div className="flex items-center gap-2 px-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600">
-            <Layers className="h-4.5 w-4.5 text-white" strokeWidth={2.25} />
-          </div>
+          <UserButton />
           <span className="text-[15px] font-semibold text-white">OmniPad</span>
         </div>
 

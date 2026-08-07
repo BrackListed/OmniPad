@@ -1,14 +1,26 @@
 import { Bell, Flame, Plus, Search } from "lucide-react";
+import { useUser } from "@clerk/react";
 
 export function TopBar() {
+  const { user } = useUser();
+  const displayName = user?.username ?? user?.firstName ?? "there";
+
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-violet-600 text-sm font-semibold text-white">
-            A
-          </div>
-          <span className="text-lg font-semibold text-white">Welcome back, Alex!</span>
+          {user?.imageUrl ? (
+            <img
+              src={user.imageUrl}
+              alt={displayName}
+              className="h-9 w-9 rounded-full object-cover"
+            />
+          ) : (
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-violet-600 text-sm font-semibold text-white">
+              {displayName.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <span className="text-lg font-semibold text-white">Welcome back, {displayName}!</span>
         </div>
         <button className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-zinc-300 hover:bg-white/10">
           <Bell className="h-4.5 w-4.5" strokeWidth={2} />
