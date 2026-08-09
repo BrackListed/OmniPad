@@ -86,9 +86,6 @@ const pdfWorker = new Worker(
         const parser = new PDFParse({data: buffer})
         const data = await parser.getText()
         await parser.destroy()
-        if(fs.existsSync(filePath)){
-            fs.unlinkSync(filePath)
-        }
         const text = data.text
         const CHUNK_SIZE = 12000
         if(!text.trim()) { throw new Error("No text found!")}

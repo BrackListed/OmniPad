@@ -8,6 +8,8 @@ import { clerkMiddleware } from '@clerk/express'
 import multer from "multer"
 import path from "path"
 import {Queue} from "bullmq"
+import fs from "fs"
+import crypto from "crypto";
 const app = express()
 const pool = new Pool({connectionString: process.env.DATABASE_URL})
 const db = drizzle(process.env.DATABASE_URL!)
@@ -94,7 +96,21 @@ app.post('/upload/file/:userId', upload.single('file'), async(req, res) => {
   const id = await pool.query("SELECT id FROM users WHERE clerk_user_id = $1", [userId])
   const file = req.file
   if(!file) return res.status(400).json({error: "No file uploaded"})
-  const result = await pool.query("INSERT INTO file(filename, user_id, path) VALUES($1, $2, $3) RETURNING id, path", [file?.originalname, id.rows[0].id, file.path])
+  const fileBuffer = fs.readFileSync(file!.path)
+  const fileHash = crypto.createHash(`sha256`).update(fileBuffer).digest('hex')
+  const existingFile = await pool.query("SELECT id, path FROM file WHERE user_id = $1 and file_hash = $2", [id.rows[0].id, fileHash])
+  if(existingFile.rows.length > 0){
+    if(fs.existsSync(file!.path)){
+      fs.unlinkSync(file!.path)
+    }
+
+    return res.status(200).json({
+      message: "Duplicate file detected. Reusing existing file record.",
+      id: existingFile.rows[0].id,
+      path: existingFile.rows[0].path
+    });
+  }
+  const result = await pool.query("INSERT INTO file(filename, user_id, path, file_hash) VALUES($1, $2, $3, $4) RETURNING id, path", [file?.originalname, id.rows[0].id, file.path, fileHash])
   res.json({id: result.rows[0].id, path: result.rows[0].path})
 })
 
