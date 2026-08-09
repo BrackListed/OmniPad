@@ -5,7 +5,9 @@ import { verifyWebhook } from '@clerk/express/webhooks'
 import { Pool } from "pg"
 import { drizzle } from "drizzle-orm/node-postgres"
 import { clerkMiddleware } from '@clerk/express'
-
+import multer from "multer"
+import path from "path"
+import {Queue} from "bullmq"
 const app = express()
 const pool = new Pool({connectionString: process.env.DATABASE_URL})
 const db = drizzle(process.env.DATABASE_URL!)
@@ -43,6 +45,19 @@ app.post('/webhooks/clerk', express.raw({ type: 'application/json' }), async (re
 app.use(clerkMiddleware())
 app.use(express.json())
 
+const redisOptions = {host: "localhost", port: 6379}
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/')
+  },
+  filename: function (req, file, cb) {
+    const shortName = Date.now() + path.extname(file.originalname);
+    cb(null, shortName)
+  }
+})
+
+const upload = multer({storage: storage})
+
 app.get("/tasks/:userId", async(req, res) => {
   const {userId} = req.params
   try{
@@ -72,6 +87,26 @@ app.post("/add/tasks/:userId", async(req, res) => {
       message: "Tasks failed to be inserted into the database"
     })
   }
+})
+
+app.post("/process/file/:userId", upload.single('file'),async(req, res) => {
+  const myQueue = new Queue('pdf-processing', {connection: redisOptions});
+  const {userId} = req.params
+  const id = await pool.query("SELECT id FROM users WHERE clerk_user_id = $1", [userId])
+  const type = req.body.type
+  const file = req.file
+  if(!file) return res.status(400).json({error: "No file uploaded"})
+  const result = await pool.query("INSERT INTO file(filename, user_id) VALUES($1, $2) RETURNING id", [file?.originalname, id.rows[0].id])
+  const fileId = result.rows[0].id
+  await myQueue.add('extract-and-generate', {
+    fileId: fileId,
+    userId: id.rows[0].id,
+    type: type,
+    filePath: file.path
+  })
+  return res.status(202).json({message: "File processing. This will take a moment...",
+    fileId: fileId
+  })
 })
 
 const PORT = process.env.PORT || 5000

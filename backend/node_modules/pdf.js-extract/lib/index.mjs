@@ -1,0 +1,142 @@
+import { readFile } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { join, sep, dirname } from "node:path";
+import { createRequire } from "node:module";
+import * as utils from "./utils.mjs";
+
+// Polyfill for process.getBuiltinModule, added in Node 22.3.0 / 20.16.0.
+// Node 21 is EOL and never received this backport; without it the bundled
+// pdf.js fails to load CMaps (node_utils_fetchData throws) and CMap-encoded
+// text (e.g. Chinese characters) is silently dropped from extraction results.
+if (!process.getBuiltinModule) {
+	const _require = createRequire(import.meta.url);
+	process.getBuiltinModule = name => _require(name);
+}
+
+import { getDocument, GlobalWorkerOptions } from "./pdfjs/pdf.mjs";
+import { getPageImages } from "./extraction/images.mjs";
+import { getAttachments } from "./extraction/attachments.mjs";
+import { getPageAnnotations } from "./extraction/annotations.mjs";
+import { getPageContent } from "./extraction/content.mjs";
+import { getMetadata } from "./extraction/metadata.mjs";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+GlobalWorkerOptions.workerSrc = new URL("./pdfjs/pdf.worker.mjs", import.meta.url).href;
+
+class PDFExtract {
+	constructor() {
+	}
+
+	extract(filename, options, cb) {
+		if (!cb) {
+			return new Promise((resolve, reject) => {
+				this.extract(filename, options, (err, data) => {
+					if (err) {
+						reject(err);
+					} else {
+						resolve(data);
+					}
+				});
+			});
+		}
+		readFile(filename, (err, buffer) => {
+			if (err) {
+				return cb(err);
+			}
+			return this.extractBuffer(buffer, options, (err, pdf) => {
+				if (err) {
+					return cb(err);
+				} else {
+					return cb(null, pdf);
+				}
+			});
+		});
+	}
+
+	extractBuffer(buffer, options = {}, cb) {
+		if (!cb) {
+			return this.extractBufferAsync(buffer, options);
+		}
+		this.extractBufferAsync(buffer, options)
+		.then(
+				pdf => {
+					cb(null, pdf);
+				},
+				err => cb(err)
+		);
+	}
+
+	async extractBufferAsync(buffer, options) {
+		const opts = {
+			verbosity: -1,
+			cMapUrl: join(__dirname, "cmaps") + sep, // trailing path separator is important
+			cMapPacked: true,
+			...options,
+			data: new Uint8Array(buffer)
+		};
+		const textExtractOptions = {
+			normalizeWhitespace: opts.normalizeWhitespace === true,
+			disableCombineTextItems: opts.disableCombineTextItems === true
+		};
+		const doc = await getDocument(opts).promise;
+		const pdf = {
+			meta: {},
+			pages: [],
+			info: {
+				numPages: doc.numPages,
+				fingerprints: doc.fingerprints.filter(fp => fp !== null)
+			}
+		};
+		const firstPage = Math.max(1, opts?.firstPage ?? 1);
+		const lastPage = Math.min(opts?.lastPage ?? doc.numPages, doc.numPages);
+
+		const getPageInfo = (pageNum, page) => {
+			const viewport = page.getViewport({ scale: 1.0 });
+			return {
+				num: pageNum,
+				scale: viewport.scale,
+				rotation: viewport.rotation,
+				offsetX: viewport.offsetX,
+				offsetY: viewport.offsetY,
+				width: viewport.width,
+				height: viewport.height,
+				view: { minX: page.view[0], minY: page.view[1], maxX: page.view[2], maxY: page.view[3] }
+			};
+		};
+
+		const getPage = async pageNum => {
+			const page = await doc.getPage(pageNum);
+			await page.getOperatorList();
+			const resultPage = {
+				info: getPageInfo(pageNum, page),
+				content: await getPageContent(page, textExtractOptions, opts.includeColors === true)
+			};
+			const annotations = await getPageAnnotations(page);
+			if (annotations) {
+				resultPage.annotations = annotations;
+			}
+			if (opts.includeImages) {
+				const images = await getPageImages(page);
+				if (images) {
+					resultPage.images = images;
+				}
+			}
+			pdf.pages.push(resultPage);
+		};
+
+		pdf.meta = await getMetadata(doc);
+		if (opts.includeAttachments) {
+			pdf.attachments = await getAttachments(doc);
+		}
+		for (let i = firstPage; i <= lastPage; i++) {
+			await getPage(i);
+		}
+		return pdf;
+	}
+}
+
+PDFExtract.utils = utils;
+
+export { PDFExtract };

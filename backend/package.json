@@ -1,6 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -11,11 +12,18 @@
   "description": "",
   "dependencies": {
     "@clerk/express": "^2.1.51",
+    "@types/multer": "^2.2.0",
     "axios": "^1.19.0",
+    "bullmq": "^6.0.9",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
+    "groq-sdk": "^1.5.0",
+    "ioredis": "^6.0.0",
+    "multer": "^2.2.0",
+    "pdf-parse": "^2.4.5",
+    "pdf.js-extract": "^1.0.1",
     "pg": "^8.22.0"
   },
   "devDependencies": {
