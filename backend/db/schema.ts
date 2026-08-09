@@ -28,6 +28,8 @@ export const file = pgTable("file", {
     filename: text('filename'),
     upload_date: timestamp("upload_date", {withTimezone: true}).defaultNow(),
     user_id: uuid("user_id").references(() => users.id, {onDelete: "cascade"}),
+    path: text('path'),
+    file_hash: text("file_hash").unique()
 })
 
 export const study_sessions = pgTable("study_sessions", {

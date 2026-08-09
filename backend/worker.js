@@ -1,8 +1,9 @@
 import Groq from "groq-sdk";
-import pdfParse from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 import {Pool} from "pg"
 import { Worker } from "bullmq";
 import fs from "fs"
+import 'dotenv/config'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const redisOptions = {host: "localhost", port: 6379, maxRetriesPerRequest: null}
@@ -10,7 +11,7 @@ const pool = new Pool({connectionString: process.env.DATABASE_URL})
 
 function getPrompt(type){
     const baseInstruction = "You are an AI study assistant. Extract concepts from the provided text and output ONLY valid JSON adhering strictly to the required schema. Do not include markdown code block formatting (like ```json) in your final response if JSON mode is enabled.";
-    switch(type.toLowerCase()){
+    switch(type){
         case "Feynman" :
             return`${baseInstruction} 
                 Mode: Feynman Technique. Generate open-ended questions designed to make the user explain key concepts in simple terms.
@@ -82,7 +83,9 @@ const pdfWorker = new Worker(
     async(job) => {
         const {fileId, userId, type, filePath} = job.data
         const buffer = fs.readFileSync(filePath)
-        const data = await pdfParse(buffer)
+        const parser = new PDFParse({data: buffer})
+        const data = await parser.getText()
+        await parser.destroy()
         if(fs.existsSync(filePath)){
             fs.unlinkSync(filePath)
         }
@@ -126,7 +129,16 @@ const pdfWorker = new Worker(
         }))
         const topic = payload.title || `${type} Session`
         const formattedMode = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
-        await pool.query("INSERT INTO study_sessions(user_id, file_id, mode, topic, score, passed, payload) VALUES($1, $2, $3, $4, $5, $6, $7)", [userId, fileId, formattedMode, topic, 0, false, JSON.stringify(payload)])
+        const existingSession = await pool.query("SELECT id FROM study_sessions WHERE file_id = $1 AND mode = $2", [fileId, formattedMode]);
+        if(existingSession.rows.length > 0){
+            console.log(`[Worker] Study session for file ${fileId} and mode ${formattedMode} already exists. Skipping duplicate insert.`);
+        } else{
+            await pool.query("INSERT INTO study_sessions(user_id, file_id, mode, topic, score, passed, payload) VALUES($1, $2, $3, $4, $5, $6, $7)", [userId, fileId, formattedMode, topic, 0, false, JSON.stringify(payload)])
+        }
     },
     {connection: redisOptions}
 )
+
+pdfWorker.on("failed", (job, err) => {
+    console.error(`Job ${job?.id} failed:`, err)
+})

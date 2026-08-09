@@ -89,20 +89,25 @@ app.post("/add/tasks/:userId", async(req, res) => {
   }
 })
 
-app.post("/process/file/:userId", upload.single('file'),async(req, res) => {
+app.post('/upload/file/:userId', upload.single('file'), async(req, res) => {
+  const {userId} = req.params
+  const id = await pool.query("SELECT id FROM users WHERE clerk_user_id = $1", [userId])
+  const file = req.file
+  if(!file) return res.status(400).json({error: "No file uploaded"})
+  const result = await pool.query("INSERT INTO file(filename, user_id, path) VALUES($1, $2, $3) RETURNING id, path", [file?.originalname, id.rows[0].id, file.path])
+  res.json({id: result.rows[0].id, path: result.rows[0].path})
+})
+
+app.post("/generate/session/:userId", async(req, res) => {
   const myQueue = new Queue('pdf-processing', {connection: redisOptions});
   const {userId} = req.params
   const id = await pool.query("SELECT id FROM users WHERE clerk_user_id = $1", [userId])
-  const type = req.body.type
-  const file = req.file
-  if(!file) return res.status(400).json({error: "No file uploaded"})
-  const result = await pool.query("INSERT INTO file(filename, user_id) VALUES($1, $2) RETURNING id", [file?.originalname, id.rows[0].id])
-  const fileId = result.rows[0].id
+  const {type, fileId, path} = req.body
   await myQueue.add('extract-and-generate', {
     fileId: fileId,
     userId: id.rows[0].id,
     type: type,
-    filePath: file.path
+    filePath: path
   })
   return res.status(202).json({message: "File processing. This will take a moment...",
     fileId: fileId
