@@ -3,6 +3,7 @@ import axios from "axios"
 import { useEffect, useState } from "react"
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react"
 import { LeftSidebar } from "../../dashboard/LeftSidebar"
+import { MathText } from "./MathText"
 
 interface FeynmanProps{
     type: string | undefined
@@ -24,7 +25,7 @@ interface payloadType{
 export function FeynmanComponent({type, fileId}: FeynmanProps){
     const {getToken, userId}  = useAuth()
     const [loading, setLoading] = useState(true)
-    const [Session, setSession] = useState<payloadType | null>(null)
+    const [session, setSession] = useState<payloadType | null>(null)
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
     const [answer, setAnswer] = useState("")
 
@@ -61,7 +62,7 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
         )
     }
 
-    const questions = Session?.questions ?? []
+    const questions = session?.questions ?? []
     const currentQuestion = questions[currentQuestionIndex]
     const totalQuestions = questions.length
     const hasAnswer = answer.trim().length > 0
@@ -75,7 +76,7 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
                     <div className="flex items-center justify-between gap-4">
                         <div>
                             <h1 className="text-3xl font-semibold tracking-tight text-white">Feynman Reviewer</h1>
-                            <p className="mt-1 text-sm text-zinc-400">Module: {Session?.title ?? "Untitled"}</p>
+                            <p className="mt-1 text-sm text-zinc-400">Module: {session?.title ?? "Untitled"}</p>
                         </div>
 
                         <div className="inline-flex items-center rounded-full border border-violet-400/30 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-200">
@@ -100,7 +101,7 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
                         <>
                             <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">{currentQuestion.concept}</p>
                             <h2 className="mt-3 text-3xl font-medium leading-tight text-white">
-                                {currentQuestion.question ?? currentQuestion.prompt ?? "No question text"}
+                                <MathText text={currentQuestion.question ?? currentQuestion.prompt ?? "No question text"} />
                             </h2>
 
                             <textarea
