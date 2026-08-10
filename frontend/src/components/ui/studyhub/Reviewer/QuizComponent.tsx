@@ -1,9 +1,10 @@
 interface QuizProps{
+    type: string | undefined
     fileId: string | undefined
 }
 
-export function QuizComponent({fileId}: QuizProps){
+export function QuizComponent({type, fileId}: QuizProps){
     return(
-        <div>Hello, Quiz! - {fileId }</div>
+        <div>{type} - {fileId}</div>
     )
 }

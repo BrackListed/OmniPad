@@ -13,7 +13,7 @@ export default function App(){
         <Route path = "/intermission" element={<Intermission/>}/>
         <Route path = "/calendar" element={<Calendar/>}/>
         <Route path = "/study-hub" element={<StudyHub/>}/>
-        <Route path = "study-hub/:type/:fileId" element={<ReviewIntermission/>}/>
+        <Route path = "/study-hub/:type/:fileId" element={<ReviewIntermission/>}/>
       </Routes>
     </BrowserRouter>
   )

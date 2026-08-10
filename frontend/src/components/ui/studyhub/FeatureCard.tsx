@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Lock, Rocket } from "lucide-react";
+import { Loader2, Lock, Rocket } from "lucide-react";
 
 const accentStyles = {
   orange: {
@@ -39,6 +39,7 @@ type FeatureCardProps = {
   bullets: string[];
   ctaLabel: string;
   locked?: boolean;
+  loading?: boolean;
   onClick?: () => void;
 };
 
@@ -49,6 +50,7 @@ export function FeatureCard({
   bullets,
   ctaLabel,
   locked = false,
+  loading = false,
   onClick,
 }: FeatureCardProps) {
   const style = accentStyles[accent];
@@ -56,7 +58,7 @@ export function FeatureCard({
   return (
     <div
       className={`flex flex-col rounded-2xl border bg-[#12121a] p-5 transition-opacity ${style.border} ${
-        locked ? "opacity-50" : "opacity-100"
+        locked && !loading ? "opacity-50" : "opacity-100"
       }`}
     >
       <div className="flex items-center gap-2.5">
@@ -76,11 +78,17 @@ export function FeatureCard({
 
       <button
         onClick={onClick}
-        disabled={locked}
+        disabled={locked || loading}
         className={`mt-5 flex items-center justify-center gap-2 rounded-lg border bg-white/[0.02] px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:hover:bg-white/2 ${style.button}`}
       >
-        {locked ? <Lock className="h-4 w-4" strokeWidth={2} /> : <Rocket className="h-4 w-4" strokeWidth={2} />}
-        {locked ? "Locked" : ctaLabel}
+        {loading ? (
+          <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
+        ) : locked ? (
+          <Lock className="h-4 w-4" strokeWidth={2} />
+        ) : (
+          <Rocket className="h-4 w-4" strokeWidth={2} />
+        )}
+        {loading ? "Generating..." : locked ? "Locked" : ctaLabel}
       </button>
     </div>
   );

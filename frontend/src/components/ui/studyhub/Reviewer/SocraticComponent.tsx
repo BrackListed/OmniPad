@@ -1,9 +1,10 @@
 interface socraticProps{
+    type: string | undefined
     fileId: string | undefined
 }
 
-export function SocraticComponent({fileId}: socraticProps){
+export function SocraticComponent({type, fileId}: socraticProps){
     return(
-        <div>Socratic - {fileId}</div>
+        <div>{type} - {fileId}</div>
     )
 }

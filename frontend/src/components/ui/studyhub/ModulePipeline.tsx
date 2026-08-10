@@ -37,6 +37,7 @@ export function ModulePipeline() {
   const {getToken, userId} = useAuth()
   const [fileList, setFileList] = useState<fileType[]>([])
   const [searchQuery, setSearchQuery] = useState("")
+  const [generatingType, setGeneratingType] = useState<string | null>(null)
   const navigate = useNavigate()
   const filteredFiles = fileList.filter((file) =>
     file.filename.toLowerCase().includes(searchQuery.toLowerCase())
@@ -223,7 +224,8 @@ export function ModulePipeline() {
                 "Target: 80% or re-explain.",
               ]}
               ctaLabel="Start Teaching"
-              locked={status !== "complete"}
+              locked={status !== "complete" || (generatingType !== null && generatingType !== "Feynman")}
+              loading={generatingType === "Feynman"}
               onClick={() => createStudySession(fileId, filePath, "Feynman", userId)}
             />
           </div>
@@ -239,7 +241,8 @@ export function ModulePipeline() {
                 "Guided logic chain validation",
               ]}
               ctaLabel="Enter Socratic Arena"
-              locked={status !== "complete"}
+              locked={status !== "complete" || (generatingType !== null && generatingType !== "Socratic")}
+              loading={generatingType === "Socratic"}
               onClick={() => createStudySession(fileId, filePath, "Socratic", userId)}
             />
           </div>
@@ -255,7 +258,8 @@ export function ModulePipeline() {
                 "Customizable length & difficulty",
               ]}
               ctaLabel="Generate Quiz Batch"
-              locked={status !== "complete"}
+              locked={status !== "complete" || (generatingType !== null && generatingType !== "Quiz")}
+              loading={generatingType === "Quiz"}
               onClick={() => createStudySession(fileId, filePath, "Quiz", userId)}
             />
           </div>
@@ -271,7 +275,8 @@ export function ModulePipeline() {
                 "Swipe to mark known / unsure",
               ]}
               ctaLabel="Start Flashcards"
-              locked={status !== "complete"}
+              locked={status !== "complete" || (generatingType !== null && generatingType !== "Flashcards")}
+              loading={generatingType === "Flashcards"}
               onClick={() => createStudySession(fileId, filePath, "Flashcards", userId)}
             />
           </div>
@@ -305,14 +310,17 @@ export function ModulePipeline() {
     )
   }
   async function createStudySession(id: string, path: string, type: string, userId: string | null | undefined){
-    if(!userId) return 
-      const token = getToken()
+    if(!userId || generatingType) return
+    setGeneratingType(type)
+    try {
+      const token = await getToken()
       const result = await axios.post(`http://localhost:5000/generate/session/${userId}`, {type: type, fileId: id, path: path,}, {headers: {Authorization: `Bearer ${token}`}})
-      console.log(result.status)
-      if(result.status === 202){
-        navigate(`/${type}/${result.data.fileId}`)
-      } else{
-        alert("Failed to redirect, please check the file you uploaded!")
-      }
+      navigate(`/study-hub/${type}/${result.data.fileId}`)
+    } catch (err) {
+      console.error("Failed to generate study session:", err)
+      alert("Failed to generate study session, please try again.")
+    } finally {
+      setGeneratingType(null)
+    }
   }
 }

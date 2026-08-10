@@ -7,7 +7,7 @@ import { drizzle } from "drizzle-orm/node-postgres"
 import { clerkMiddleware } from '@clerk/express'
 import multer from "multer"
 import path from "path"
-import {Queue} from "bullmq"
+import {Queue, QueueEvents} from "bullmq"
 import fs from "fs"
 import crypto from "crypto";
 const app = express()
@@ -48,6 +48,7 @@ app.use(clerkMiddleware())
 app.use(express.json())
 
 const redisOptions = {host: "localhost", port: 6379}
+const pdfQueueEvents = new QueueEvents('pdf-processing', {connection: redisOptions})
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'uploads/')
@@ -80,6 +81,13 @@ app.get("/file/:userId", async(req, res) => {
   const id = await pool.query("SELECT id FROM users WHERE clerk_user_id = $1", [userId])
   const result = await pool.query("SELECT * FROM file WHERE user_id = $1 ORDER BY upload_date DESC", [id.rows[0].id])
   res.json({files: result.rows})
+})
+
+app.get("/session/:userId/:type/:fileId", async(req, res) => {
+  const {userId, type, fileId} =  req.params
+  const id = await pool.query("SELECT id FROM users WHERE clerk_user_id = $1", [userId])
+  const result = await pool.query("SELECT * FROM study_sessions WHERE file_id = $1 AND mode = $2 AND user_id = $3", [fileId, type, id.rows[0].id])
+  res.json(result.rows)
 })
 
 app.post("/add/tasks/:userId", async(req, res) => {
@@ -126,15 +134,19 @@ app.post("/generate/session/:userId", async(req, res) => {
   const {userId} = req.params
   const id = await pool.query("SELECT id FROM users WHERE clerk_user_id = $1", [userId])
   const {type, fileId, path} = req.body
-  await myQueue.add('extract-and-generate', {
+  const job = await myQueue.add('extract-and-generate', {
     fileId: fileId,
     userId: id.rows[0].id,
     type: type,
     filePath: path
   })
-  return res.status(202).json({message: "File processing. This will take a moment...",
-    fileId: fileId
-  })
+  try {
+    await job.waitUntilFinished(pdfQueueEvents)
+  } catch (err) {
+    console.error('Study session generation failed:', err)
+    return res.status(500).json({message: "Failed to generate study session"})
+  }
+  return res.status(200).json({message: "Study session ready", fileId: fileId})
 })
 
 const PORT = process.env.PORT || 5000
