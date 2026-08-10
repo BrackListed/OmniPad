@@ -71,96 +71,98 @@ export function ModulePipeline() {
 
   return (
     <div className="flex flex-col items-center">
-      {fileList.length > 0 && (
-        <div className="mb-6 w-full max-w-md">
-          <h3 className="mb-2 text-sm font-semibold text-white">Your Files</h3>
-          <div className="relative mb-3">
-            <Search
-              className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
-              strokeWidth={2}
-            />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search your files"
-              className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-zinc-200 placeholder-zinc-500 outline-none focus:border-violet-500/50"
-            />
-          </div>
-          <div className="flex max-h-56 flex-col gap-2 overflow-y-auto">
-            {filteredFiles.length === 0 ? (
-              <p className="py-4 text-center text-sm text-zinc-500">No files found</p>
-            ) : (
-              filteredFiles.map((file) => (
-                <button
-                  key={file.id}
-                  type="button"
-                  onClick={() => selectFile(file)}
-                  disabled={status === "processing"}
-                  className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-colors disabled:cursor-not-allowed ${
-                    fileId === file.id
-                      ? "border-violet-500/50 bg-violet-500/10"
-                      : "border-white/10 bg-[#12121a] hover:border-white/20"
-                  }`}
-                >
-                  <FileText className="h-4 w-4 shrink-0 text-zinc-400" strokeWidth={2} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-white">{file.filename}</p>
-                    <p className="text-xs text-zinc-500">
-                      {new Date(file.upload_date).toLocaleDateString()}
-                    </p>
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      )}
+      <div className="flex w-full max-w-3xl flex-col items-stretch gap-4 sm:flex-row sm:justify-center">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.png,.jpg,.jpeg,.txt,.md"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            uploadFile(file)
+            if (file) startProcessing(file.name);
+          }}
+        />
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".pdf,.png,.jpg,.jpeg,.txt,.md"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          uploadFile(file)
-          if (file) startProcessing(file.name);
-        }}
-      />
+        <button
+          type="button"
+          onClick={() => status === "idle" && fileInputRef.current?.click()}
+          onDragOver={(e) => {
+            e.preventDefault();
+            if (status === "idle") setIsDraggingOver(true);
+          }}
+          onDragLeave={() => setIsDraggingOver(false)}
+          onDrop={(e) => {
 
-      <button
-        type="button"
-        onClick={() => status === "idle" && fileInputRef.current?.click()}
-        onDragOver={(e) => {
-          e.preventDefault();
-          if (status === "idle") setIsDraggingOver(true);
-        }}
-        onDragLeave={() => setIsDraggingOver(false)}
-        onDrop={(e) => {
-          
-          e.preventDefault();
-          setIsDraggingOver(false);
-          const file = e.dataTransfer.files?.[0];
-          if (file && status === "idle") startProcessing(file.name);
-        }}
-        disabled={status !== "idle"}
-        className={`flex w-full max-w-md flex-col items-center gap-3 rounded-2xl border-2 border-dashed p-8 text-center transition-colors ${
-          isDraggingOver ? "border-violet-500 bg-violet-500/10" : "border-white/15 bg-[#12121a]"
-        } ${status === "idle" ? "cursor-pointer hover:border-violet-500/50" : "cursor-default"}`}
-      >
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-600/15 text-violet-400">
-          <UploadCloud className="h-6 w-6" strokeWidth={2} />
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-white">
-            {fileName ?? "Upload PDF / Screenshot / Notes"}
-          </p>
-          <p className="mt-0.5 text-xs text-zinc-500">
-            {fileName ? "Ready to process" : "Drag & drop or click to browse"}
-          </p>
-        </div>
-      </button>
+            e.preventDefault();
+            setIsDraggingOver(false);
+            const file = e.dataTransfer.files?.[0];
+            if (file && status === "idle") startProcessing(file.name);
+          }}
+          disabled={status !== "idle"}
+          className={`flex w-full flex-1 flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-8 text-center transition-colors sm:max-w-md ${
+            isDraggingOver ? "border-violet-500 bg-violet-500/10" : "border-white/15 bg-[#12121a]"
+          } ${status === "idle" ? "cursor-pointer hover:border-violet-500/50" : "cursor-default"}`}
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-600/15 text-violet-400">
+            <UploadCloud className="h-6 w-6" strokeWidth={2} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-white">
+              {fileName ?? "Upload PDF / Screenshot / Notes"}
+            </p>
+            <p className="mt-0.5 text-xs text-zinc-500">
+              {fileName ? "Ready to process" : "Drag & drop or click to browse"}
+            </p>
+          </div>
+        </button>
+
+        {fileList.length > 0 && (
+          <div className="flex max-h-72 w-full flex-col rounded-2xl border border-white/10 bg-[#12121a] p-4 sm:w-72 sm:shrink-0">
+            <h3 className="mb-2 text-sm font-semibold text-white">Your Files</h3>
+            <div className="relative mb-3">
+              <Search
+                className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
+                strokeWidth={2}
+              />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search your files"
+                className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-zinc-200 placeholder-zinc-500 outline-none focus:border-violet-500/50"
+              />
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+              {filteredFiles.length === 0 ? (
+                <p className="py-4 text-center text-sm text-zinc-500">No files found</p>
+              ) : (
+                filteredFiles.map((file) => (
+                  <button
+                    key={file.id}
+                    type="button"
+                    onClick={() => selectFile(file)}
+                    disabled={status === "processing"}
+                    className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-colors disabled:cursor-not-allowed ${
+                      fileId === file.id
+                        ? "border-violet-500/50 bg-violet-500/10"
+                        : "border-white/10 bg-white/2 hover:border-white/20"
+                    }`}
+                  >
+                    <FileText className="h-4 w-4 shrink-0 text-zinc-400" strokeWidth={2} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-white">{file.filename}</p>
+                      <p className="text-xs text-zinc-500">
+                        {new Date(file.upload_date).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="flex flex-col items-center py-1">
         <div className="h-6 w-px bg-white/15" />
