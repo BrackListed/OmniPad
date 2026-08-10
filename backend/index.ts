@@ -75,6 +75,13 @@ app.get("/tasks/:userId", async(req, res) => {
   }
 })
 
+app.get("/file/:userId", async(req, res) => {
+  const {userId} = req.params
+  const id = await pool.query("SELECT id FROM users WHERE clerk_user_id = $1", [userId])
+  const result = await pool.query("SELECT * FROM file WHERE user_id = $1 ORDER BY upload_date DESC", [id.rows[0].id])
+  res.json({files: result.rows})
+})
+
 app.post("/add/tasks/:userId", async(req, res) => {
   const {userId} = req.params
   const {title, details, due, type} = req.body

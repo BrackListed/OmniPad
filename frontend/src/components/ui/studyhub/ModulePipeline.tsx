@@ -3,22 +3,53 @@ import {
   Brain,
   ChevronDown,
   FileCheck2,
+  FileText,
   Landmark,
   Loader2,
+  Search,
   SquareStack,
   Target,
   UploadCloud,
   X,
 } from "lucide-react";
 import { FeatureCard } from "./FeatureCard";
+import axios from "axios";
+import { useAuth } from "@clerk/react";
 
 type PipelineStatus = "idle" | "processing" | "complete";
+
+interface fileType {
+  id: string
+  filename: string
+  upload_date: Date
+  user_id: string
+  path: string
+}
 
 export function ModulePipeline() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [status, setStatus] = useState<PipelineStatus>("idle");
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [filePath, setFilePath] = useState("")
+  const [fileId, setFileId] = useState("")
+  const {getToken, userId} = useAuth()
+  const [fileList, setFileList] = useState<fileType[]>([])
+  const [searchQuery, setSearchQuery] = useState("")
+
+  const filteredFiles = fileList.filter((file) =>
+    file.filename.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  useEffect(() => {
+    if(!userId) return 
+    const fetchFiles = async() => {
+      const token = await getToken()
+      const result = await axios.get(`http://localhost:5000/file/${userId}`, {headers: {Authorization: `Bearer ${token}`}})
+      setFileList(result.data.files)
+    }
+    fetchFiles()
+  }, [userId])
 
   useEffect(() => {
     if (status !== "processing") return;
@@ -37,8 +68,55 @@ export function ModulePipeline() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
+
   return (
     <div className="flex flex-col items-center">
+      {fileList.length > 0 && (
+        <div className="mb-6 w-full max-w-md">
+          <h3 className="mb-2 text-sm font-semibold text-white">Your Files</h3>
+          <div className="relative mb-3">
+            <Search
+              className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
+              strokeWidth={2}
+            />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search your files"
+              className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-zinc-200 placeholder-zinc-500 outline-none focus:border-violet-500/50"
+            />
+          </div>
+          <div className="flex max-h-56 flex-col gap-2 overflow-y-auto">
+            {filteredFiles.length === 0 ? (
+              <p className="py-4 text-center text-sm text-zinc-500">No files found</p>
+            ) : (
+              filteredFiles.map((file) => (
+                <button
+                  key={file.id}
+                  type="button"
+                  onClick={() => selectFile(file)}
+                  disabled={status === "processing"}
+                  className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-colors disabled:cursor-not-allowed ${
+                    fileId === file.id
+                      ? "border-violet-500/50 bg-violet-500/10"
+                      : "border-white/10 bg-[#12121a] hover:border-white/20"
+                  }`}
+                >
+                  <FileText className="h-4 w-4 shrink-0 text-zinc-400" strokeWidth={2} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-white">{file.filename}</p>
+                    <p className="text-xs text-zinc-500">
+                      {new Date(file.upload_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
       <input
         ref={fileInputRef}
         type="file"
@@ -46,6 +124,7 @@ export function ModulePipeline() {
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
+          uploadFile(file)
           if (file) startProcessing(file.name);
         }}
       />
@@ -59,6 +138,7 @@ export function ModulePipeline() {
         }}
         onDragLeave={() => setIsDraggingOver(false)}
         onDrop={(e) => {
+          
           e.preventDefault();
           setIsDraggingOver(false);
           const file = e.dataTransfer.files?.[0];
@@ -141,6 +221,7 @@ export function ModulePipeline() {
               ]}
               ctaLabel="Start Teaching"
               locked={status !== "complete"}
+              onClick={() => createStudySession(fileId, filePath, "Feynman", userId)}
             />
           </div>
           <div className="flex flex-col items-center gap-2">
@@ -156,6 +237,7 @@ export function ModulePipeline() {
               ]}
               ctaLabel="Enter Socratic Arena"
               locked={status !== "complete"}
+              onClick={() => createStudySession(fileId, filePath, "Socratic", userId)}
             />
           </div>
           <div className="flex flex-col items-center gap-2">
@@ -171,6 +253,7 @@ export function ModulePipeline() {
               ]}
               ctaLabel="Generate Quiz Batch"
               locked={status !== "complete"}
+              onClick={() => createStudySession(fileId, filePath, "Quiz", userId)}
             />
           </div>
           <div className="flex flex-col items-center gap-2">
@@ -186,10 +269,42 @@ export function ModulePipeline() {
               ]}
               ctaLabel="Start Flashcards"
               locked={status !== "complete"}
+              onClick={() => createStudySession(fileId, filePath, "Flashcards", userId)}
             />
           </div>
         </div>
       </div>
     </div>
   );
+
+
+
+  function selectFile(file: fileType){
+    setFileId(file.id)
+    setFilePath(file.path)
+    startProcessing(file.filename)
+  }
+
+  async function uploadFile(file: File | undefined){
+    const formData = new FormData()
+    formData.append("file", file!)
+    const token = getToken()
+    const result = await axios.post(`http://localhost:5000/upload/file/${userId}`, formData, {headers: {Authorization: `Bearer ${token}`}})
+    setFileId(result.data.id)
+    setFilePath(result.data.path)
+    setFileList((prev) =>
+      prev.some((f) => f.id === result.data.id)
+        ? prev
+        : [
+            { id: result.data.id, filename: file!.name, upload_date: new Date(), user_id: userId ?? "", path: result.data.path },
+            ...prev,
+          ]
+    )
+  }
+  async function createStudySession(id: string, path: string, type: string, userId: string | null | undefined){
+    if(!userId) return 
+      const token = getToken()
+      const result = await axios.post(`http://localhost:5000/generate/session/${userId}`, {type: type, fileId: id, path: path,}, {headers: {Authorization: `Bearer ${token}`}})
+      console.log(result.status)
+  }
 }

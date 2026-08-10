@@ -39,6 +39,7 @@ type FeatureCardProps = {
   bullets: string[];
   ctaLabel: string;
   locked?: boolean;
+  onClick?: () => void;
 };
 
 export function FeatureCard({
@@ -48,6 +49,7 @@ export function FeatureCard({
   bullets,
   ctaLabel,
   locked = false,
+  onClick,
 }: FeatureCardProps) {
   const style = accentStyles[accent];
 
@@ -73,6 +75,7 @@ export function FeatureCard({
       </ul>
 
       <button
+        onClick={onClick}
         disabled={locked}
         className={`mt-5 flex items-center justify-center gap-2 rounded-lg border bg-white/[0.02] px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:hover:bg-white/2 ${style.button}`}
       >
