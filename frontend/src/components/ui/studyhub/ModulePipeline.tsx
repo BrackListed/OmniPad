@@ -15,6 +15,7 @@ import {
 import { FeatureCard } from "./FeatureCard";
 import axios from "axios";
 import { useAuth } from "@clerk/react";
+import { useNavigate } from "react-router-dom";
 
 type PipelineStatus = "idle" | "processing" | "complete";
 
@@ -36,7 +37,7 @@ export function ModulePipeline() {
   const {getToken, userId} = useAuth()
   const [fileList, setFileList] = useState<fileType[]>([])
   const [searchQuery, setSearchQuery] = useState("")
-
+  const navigate = useNavigate()
   const filteredFiles = fileList.filter((file) =>
     file.filename.toLowerCase().includes(searchQuery.toLowerCase())
   )
@@ -308,5 +309,10 @@ export function ModulePipeline() {
       const token = getToken()
       const result = await axios.post(`http://localhost:5000/generate/session/${userId}`, {type: type, fileId: id, path: path,}, {headers: {Authorization: `Bearer ${token}`}})
       console.log(result.status)
+      if(result.status === 202){
+        navigate(`/${type}/${result.data.fileId}`)
+      } else{
+        alert("Failed to redirect, please check the file you uploaded!")
+      }
   }
 }
