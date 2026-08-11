@@ -13,10 +13,28 @@ function normalizeMathExpression(input: string){
         .replace(/∞/g, "\\infty")
         .replace(/√/g, "\\sqrt")
         .replace(/π/g, "\\pi")
+        .replace(/\*/g, " \\cdot ")
 }
 
 function looksLikeMath(input: string){
-    return /\\[a-zA-Z]+|[_^{}]|∑|∞|√|π/.test(input)
+    const trimmed = input.trim()
+    const hasClassicMathTokens = /\\[a-zA-Z]+|[_^{}]|∑|∞|√|π/.test(trimmed)
+    const hasMathOperators = /[=+\-*/()]/.test(trimmed)
+    const hasNumberVariableCombo = /\d\s*[a-zA-Z]|[a-zA-Z]\s*\d/.test(trimmed)
+    const isEquationLike = /^[a-zA-Z0-9\s_{}^()+\-*/.,\\]+$/.test(trimmed)
+    const words = trimmed.split(/\s+/).filter(Boolean)
+    const longWords = words.filter((word) => /[a-zA-Z]{3,}/.test(word)).length
+    const looksLikeSentence = words.length > 4 || longWords > 2
+
+    if(hasClassicMathTokens){
+        return true
+    }
+
+    if(looksLikeSentence){
+        return false
+    }
+
+    return isEquationLike && (hasMathOperators || hasNumberVariableCombo)
 }
 
 export function MathText({ text, forceMath = false }: MathTextProps){

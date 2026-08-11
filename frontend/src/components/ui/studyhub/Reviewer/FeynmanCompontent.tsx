@@ -1,7 +1,7 @@
 import { useAuth } from "@clerk/react"
 import axios from "axios"
 import { useEffect, useState } from "react"
-import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react"
+import { ArrowRight, Loader2 } from "lucide-react"
 import { LeftSidebar } from "../../dashboard/LeftSidebar"
 import { MathText } from "./MathText"
 
@@ -38,6 +38,7 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
                 const result = await axios.get(`http://localhost:5000/session/${userId}/${type}/${fileId}`, {headers: {Authorization: `Bearer ${token}`}})
                 const payload = result?.data?.[0]?.payload ?? result?.data?.payload ?? result?.data
                 setSession(payload)
+                console.log(payload)
             }
             catch(error){
                 console.error("Failed to fetch Feynman session", error)
@@ -106,26 +107,12 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
 
                             <textarea
                                 value={answer}
-                                onChange={(event) => setAnswer(event.target.value)}
+                                onChange={(event) => {setAnswer(event.target.value)}}
                                 placeholder="Teach it in your own words..."
                                 className="mt-6 min-h-72 w-full rounded-2xl border border-white/10 bg-[#0f0f17] px-4 py-3 text-base text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-violet-400"
                             />
 
-                            <div className="mt-6 flex items-center justify-between">
-                                <button
-                                    onClick={() => {
-                                        if(currentQuestionIndex > 0){
-                                            setCurrentQuestionIndex((previous) => previous - 1)
-                                            setAnswer("")
-                                        }
-                                    }}
-                                    disabled={currentQuestionIndex === 0}
-                                    className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                    <ArrowLeft className="h-4 w-4" />
-                                    Previous
-                                </button>
-
+                            <div className="mt-6 flex items-center justify-end">
                                 <button
                                     onClick={() => {
                                         if(hasAnswer){

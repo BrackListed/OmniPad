@@ -1,7 +1,7 @@
 import { useAuth } from "@clerk/react"
 import axios from "axios"
 import { useEffect, useState } from "react"
-import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react"
+import { ArrowRight, Loader2 } from "lucide-react"
 import { LeftSidebar } from "../../dashboard/LeftSidebar"
 import { MathText } from "./MathText"
 
@@ -44,6 +44,7 @@ export function QuizComponent({type, fileId}: QuizProps){
                 const result = await axios.get(`http://localhost:5000/session/${userId}/${type}/${fileId}`, {headers: {Authorization: `Bearer ${token}`}})
                 const payload = result?.data?.[0]?.payload ?? result?.data?.payload ?? result?.data
                 setSession(payload)
+                console.log(result.data)
             }
             catch(error){
                 console.error("Failed to fetch Quiz session", error)
@@ -136,7 +137,7 @@ export function QuizComponent({type, fileId}: QuizProps){
                                 {(currentQuestion.options ?? []).map((option, index) => (
                                     <button
                                         key={`${currentQuestion.id}-option-${index}`}
-                                        onClick={() => setSelectedOption(option)}
+                                        onClick={() => {setSelectedOption(option); console.log(currentQuestion)}}
                                         className={`rounded-xl border px-4 py-3 text-left text-sm transition ${selectedOption === option ? "border-violet-400 bg-violet-500/20 text-violet-100" : "border-white/10 bg-white/5 text-zinc-200 hover:bg-white/10"}`}
                                     >
                                         <MathText text={option} />
@@ -144,32 +145,24 @@ export function QuizComponent({type, fileId}: QuizProps){
                                 ))}
                             </div>
 
-                            <div className="mt-6 flex items-center justify-between">
+                            <div className="mt-6 flex items-center justify-end">
                                 <button
                                     onClick={() => {
-                                        if(currentQuestionIndex > 0){
-                                            setCurrentQuestionIndex((previous) => previous - 1)
-                                            setSelectedOption("")
+                                        if(!hasSelection) return
+                                        if(selectedOption === currentQuestion.correctAnswer){
+                                            alert("Correct")
+                                        } else {
+                                            alert(`ur wrong, question: ${Number(currentQuestion.id) - 1}`)
                                         }
-                                    }}
-                                    disabled={currentQuestionIndex === 0}
-                                    className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                    <ArrowLeft className="h-4 w-4" />
-                                    Previous
-                                </button>
-
-                                <button
-                                    onClick={() => {
                                         if(currentQuestionIndex < totalQuestions - 1){
                                             setCurrentQuestionIndex((previous) => previous + 1)
                                             setSelectedOption("")
                                         }
                                     }}
-                                    disabled={currentQuestionIndex >= totalQuestions - 1}
+                                    disabled={!hasSelection}
                                     className="inline-flex items-center gap-2 rounded-xl border border-violet-400/35 bg-violet-500/20 px-4 py-2 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30 disabled:cursor-not-allowed disabled:opacity-40"
                                 >
-                                    {hasSelection ? "Submit" : "Next"}
+                                    Submit
                                     <ArrowRight className="h-4 w-4" />
                                 </button>
                             </div>
