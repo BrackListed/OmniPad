@@ -34,6 +34,7 @@ export function QuizComponent({type, fileId}: QuizProps){
     const [showIntro, setShowIntro] = useState(true)
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
     const [selectedOption, setSelectedOption] = useState("")
+    const [correctCount, setCorrectCount] = useState(0)
 
     useEffect(() => {
         if(!userId || !type || !fileId) return
@@ -108,8 +109,13 @@ export function QuizComponent({type, fileId}: QuizProps){
                             <p className="mt-1 text-sm text-zinc-400">Topic: {session?.title ?? "Untitled"}</p>
                         </div>
 
-                        <div className="inline-flex items-center rounded-full border border-violet-400/30 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-200">
-                            {type}
+                        <div className="flex items-center gap-2">
+                            <div className="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300">
+                                Score: {correctCount}
+                            </div>
+                            <div className="inline-flex items-center rounded-full border border-violet-400/30 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-200">
+                                {type}
+                            </div>
                         </div>
                     </div>
 
@@ -150,6 +156,7 @@ export function QuizComponent({type, fileId}: QuizProps){
                                     onClick={() => {
                                         if(!hasSelection) return
                                         if(selectedOption === currentQuestion.correctAnswer){
+                                            setCorrectCount((previous) => previous + 1)
                                             alert("Correct")
                                         } else {
                                             alert(`ur wrong, question: ${Number(currentQuestion.id) - 1}`)
