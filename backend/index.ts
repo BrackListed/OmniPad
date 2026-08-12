@@ -130,10 +130,16 @@ app.post('/upload/file/:userId', upload.single('file'), async(req, res) => {
 })
 
 app.post("/generate/session/:userId", async(req, res) => {
-  const myQueue = new Queue('pdf-processing', {connection: redisOptions});
   const {userId} = req.params
   const id = await pool.query("SELECT id FROM users WHERE clerk_user_id = $1", [userId])
   const {type, fileId, path} = req.body
+
+  const existingSession = await pool.query("SELECT id FROM study_sessions WHERE file_id = $1 AND mode = $2 AND user_id = $3", [fileId, type, id.rows[0].id])
+  if(existingSession.rows.length > 0){
+    return res.status(200).json({message: "Study session already exists", fileId: fileId})
+  }
+
+  const myQueue = new Queue('pdf-processing', {connection: redisOptions});
   const job = await myQueue.add('extract-and-generate', {
     fileId: fileId,
     userId: id.rows[0].id,
