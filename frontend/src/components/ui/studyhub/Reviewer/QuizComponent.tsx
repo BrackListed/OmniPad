@@ -35,7 +35,8 @@ export function QuizComponent({type, fileId}: QuizProps){
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
     const [selectedOption, setSelectedOption] = useState("")
     const [correctCount, setCorrectCount] = useState(0)
-
+    const [wrongIndices, setWrongIndices] = useState<number[]>([])
+    const [showPreview, setShowPreview] = useState(false)
     useEffect(() => {
         if(!userId || !type || !fileId) return
 
@@ -74,7 +75,7 @@ export function QuizComponent({type, fileId}: QuizProps){
     const currentQuestion = questions[currentQuestionIndex]
     const totalQuestions = questions.length
     const hasSelection = selectedOption.trim().length > 0
-
+    const isLastQuestion = currentQuestionIndex >= totalQuestions - 1
     if(showIntro){
         return(
             <div className="flex min-h-screen bg-[#0b0b12]">
@@ -91,6 +92,56 @@ export function QuizComponent({type, fileId}: QuizProps){
                         >
                             Start Quiz
                         </button>
+                    </section>
+                </main>
+            </div>
+        )
+    }
+
+    if(showPreview){
+        const wrongQuestions = wrongIndices.map((index) => questions[index]).filter(Boolean)
+
+        return(
+            <div className="flex min-h-screen bg-[#0b0b12]">
+                <LeftSidebar />
+                <main className="flex flex-1 items-center justify-center p-8">
+                    <section className="w-full max-w-2xl rounded-3xl border border-violet-500/20 bg-[#11111a]/90 p-8 shadow-[0_24px_50px_-35px_rgba(46,16,101,0.75)]">
+                        <p className="text-xs uppercase tracking-[0.2em] text-violet-300">Results</p>
+                        <h1 className="mt-3 text-3xl font-semibold text-white">You scored {correctCount} / {totalQuestions}</h1>
+
+                        {wrongQuestions.length > 0 && (
+                            <div className="mt-6">
+                                <p className="text-sm font-medium text-zinc-300">Questions you got wrong:</p>
+                                <ul className="mt-3 flex flex-col gap-2">
+                                    {wrongQuestions.map((question) => (
+                                        <li key={question.id} className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-zinc-200">
+                                            <MathText text={question.question ?? question.prompt ?? ""} />
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
+                        <div className="mt-8 flex items-center gap-3">
+                            <button
+                                onClick={() => {
+                                    setCurrentQuestionIndex(0)
+                                    setSelectedOption("")
+                                    setCorrectCount(0)
+                                    setWrongIndices([])
+                                    setShowPreview(false)
+                                }}
+                                className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-zinc-200 transition hover:bg-white/10"
+                            >
+                                Retry
+                            </button>
+                            <button
+                                onClick={() => {}}
+                                className="rounded-xl border border-violet-400/35 bg-violet-500/20 px-5 py-2.5 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30"
+                            >
+                                Save to Database
+                            </button>
+                        </div>
                     </section>
                 </main>
             </div>
@@ -157,19 +208,21 @@ export function QuizComponent({type, fileId}: QuizProps){
                                         if(!hasSelection) return
                                         if(selectedOption === currentQuestion.correctAnswer){
                                             setCorrectCount((previous) => previous + 1)
-                                            alert("Correct")
                                         } else {
-                                            alert(`ur wrong, question: ${Number(currentQuestion.id) - 1}`)
+                                            setWrongIndices((prev) => [...prev, (Number(currentQuestion.id) - 1)])
                                         }
                                         if(currentQuestionIndex < totalQuestions - 1){
                                             setCurrentQuestionIndex((previous) => previous + 1)
                                             setSelectedOption("")
                                         }
+                                        if(isLastQuestion){
+                                            setShowPreview(true)
+                                        }
                                     }}
                                     disabled={!hasSelection}
                                     className="inline-flex items-center gap-2 rounded-xl border border-violet-400/35 bg-violet-500/20 px-4 py-2 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30 disabled:cursor-not-allowed disabled:opacity-40"
                                 >
-                                    Submit
+                                    {isLastQuestion ? "Preview" : "Submit"}
                                     <ArrowRight className="h-4 w-4" />
                                 </button>
                             </div>
