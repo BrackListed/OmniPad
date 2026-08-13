@@ -37,6 +37,7 @@ export function QuizComponent({type, fileId}: QuizProps){
     const [correctCount, setCorrectCount] = useState(0)
     const [wrongIndices, setWrongIndices] = useState<number[]>([])
     const [showPreview, setShowPreview] = useState(false)
+    const [sessionId, setSessionId] = useState("")
     useEffect(() => {
         if(!userId || !type || !fileId) return
 
@@ -46,7 +47,7 @@ export function QuizComponent({type, fileId}: QuizProps){
                 const result = await axios.get(`http://localhost:5000/session/${userId}/${type}/${fileId}`, {headers: {Authorization: `Bearer ${token}`}})
                 const payload = result?.data?.[0]?.payload ?? result?.data?.payload ?? result?.data
                 setSession(payload)
-                console.log(result.data)
+                setSessionId(result.data[0].id)
             }
             catch(error){
                 console.error("Failed to fetch Quiz session", error)
@@ -136,7 +137,7 @@ export function QuizComponent({type, fileId}: QuizProps){
                                 Retry
                             </button>
                             <button
-                                onClick={() => {}}
+                                onClick={() => {saveScore(correctCount, wrongIndices, sessionId, userId)}}
                                 className="rounded-xl border border-violet-400/35 bg-violet-500/20 px-5 py-2.5 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30"
                             >
                                 Save to Database
@@ -234,4 +235,10 @@ export function QuizComponent({type, fileId}: QuizProps){
             </main>
         </div>
     )
+
+    async function saveScore(score: number, wrong: number[], id: string, userId: string | null | undefined){
+        const token = await getToken()
+        const result = await axios.patch(`http://localhost:5000/study-session/save/${userId}/${id}`, {score: score, wrong: wrong}, {headers: {Authorization: `Bearer ${token}`}})
+        console.log(result.status)
+    }
 }

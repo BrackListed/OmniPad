@@ -155,5 +155,18 @@ app.post("/generate/session/:userId", async(req, res) => {
   return res.status(200).json({message: "Study session ready", fileId: fileId})
 })
 
+app.patch("/study-session/save/:userId/:id", async(req, res) => {
+  try{
+    const {userId} = req.params
+    const id = await pool.query("SELECT id FROM users WHERE clerk_user_id = $1", [userId])
+    const {score, wrong, passed} = req.body
+    await pool.query("UPDATE study_sessions SET score = $1, wrong_index = $2, passed = $3 WHERE id = $4 AND user_id = $5", [score, wrong, passed, id, id.rows[0].id, ])
+    res.json({status: true, message: "Successfully sent to database!"})
+  } catch(err){
+    console.error("Can't save to database", err)
+    return res.status(500).json({status: false, message: "Failed to save to database"})
+  }
+})
+
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => console.log(`Server listening on port ${PORT}`))
