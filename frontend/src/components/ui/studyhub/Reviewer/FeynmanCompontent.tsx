@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { ArrowRight, Loader2 } from "lucide-react"
 import { LeftSidebar } from "../../dashboard/LeftSidebar"
 import { MathText } from "./MathText"
+import { Dictaphone } from "./Dictaphone"
 
 interface FeynmanProps{
     type: string | undefined
@@ -28,7 +29,6 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
     const [session, setSession] = useState<payloadType | null>(null)
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
     const [answer, setAnswer] = useState("")
-
     useEffect(() => {
         if(!userId || !type || !fileId) return
 
@@ -105,12 +105,13 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
                                 <MathText text={currentQuestion.question ?? currentQuestion.prompt ?? "No question text"} />
                             </h2>
 
-                            <textarea
-                                value={answer}
-                                onChange={(event) => {setAnswer(event.target.value)}}
-                                placeholder="Teach it in your own words..."
-                                className="mt-6 min-h-72 w-full rounded-2xl border border-white/10 bg-[#0f0f17] px-4 py-3 text-base text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-violet-400"
-                            />
+                            <div className="mt-6">
+                                <Dictaphone
+                                    value={answer}
+                                    onChange={setAnswer}
+                                    placeholder="Teach it in your own words..."
+                                />
+                            </div>
 
                             <div className="mt-6 flex items-center justify-end">
                                 <button
