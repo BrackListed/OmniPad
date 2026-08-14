@@ -31,6 +31,9 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
     const [answer, setAnswer] = useState("")
     const [score, setScore] = useState(0)
     const [wrongExplanation, setWrongExplanation] = useState<string | null>(null)
+    const [wrongIndices, setWrongIndices] = useState<number[]>([])
+    const [showPreview, setShowPreview] = useState(false)
+    const [sessionId, setSessionId] = useState("")
     useEffect(() => {
         if(!userId || !type || !fileId) return
 
@@ -40,7 +43,7 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
                 const result = await axios.get(`http://localhost:5000/session/${userId}/${type}/${fileId}`, {headers: {Authorization: `Bearer ${token}`}})
                 const payload = result?.data?.[0]?.payload ?? result?.data?.payload ?? result?.data
                 setSession(payload)
-                console.log(payload)
+                setSessionId(result.data[0].id)
             }
             catch(error){
                 console.error("Failed to fetch Feynman session", error)
@@ -69,6 +72,57 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
     const currentQuestion = questions[currentQuestionIndex]
     const totalQuestions = questions.length
     const hasAnswer = answer.trim().length > 0
+    const isLastQuestion = currentQuestionIndex >= totalQuestions - 1
+
+    if(showPreview){
+        const wrongQuestions = wrongIndices.map((index) => questions[index]).filter(Boolean)
+
+        return(
+            <div className="flex min-h-screen bg-[#0b0b12]">
+                <LeftSidebar />
+                <main className="flex flex-1 items-center justify-center p-8">
+                    <section className="w-full max-w-2xl rounded-3xl border border-violet-500/20 bg-[#11111a]/90 p-8 shadow-[0_24px_50px_-35px_rgba(46,16,101,0.75)]">
+                        <p className="text-xs uppercase tracking-[0.2em] text-violet-300">Results</p>
+                        <h1 className="mt-3 text-3xl font-semibold text-white">You scored {score} / {totalQuestions}</h1>
+
+                        {wrongQuestions.length > 0 && (
+                            <div className="mt-6">
+                                <p className="text-sm font-medium text-zinc-300">Questions you got wrong:</p>
+                                <ul className="mt-3 flex flex-col gap-2">
+                                    {wrongQuestions.map((question) => (
+                                        <li key={question.id} className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-zinc-200">
+                                            <MathText text={question.question ?? question.prompt ?? ""} />
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
+                        <div className="mt-8 flex items-center gap-3">
+                            <button
+                                onClick={() => {
+                                    setCurrentQuestionIndex(0)
+                                    setAnswer("")
+                                    setScore(0)
+                                    setWrongIndices([])
+                                    setShowPreview(false)
+                                }}
+                                className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-zinc-200 transition hover:bg-white/10"
+                            >
+                                Retry
+                            </button>
+                            <button
+                                onClick={() => {saveScore(score, wrongIndices, sessionId, userId)}}
+                                className="rounded-xl border border-violet-400/35 bg-violet-500/20 px-5 py-2.5 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30"
+                            >
+                                Save to Database
+                            </button>
+                        </div>
+                    </section>
+                </main>
+            </div>
+        )
+    }
 
     return(
         <div className="relative flex min-h-screen overflow-hidden bg-[#0b0b12]">
@@ -131,13 +185,16 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
                                                     setCurrentQuestionIndex((previous) => previous + 1)
                                                 }
                                                 setAnswer("")
+                                                if(isLastQuestion){
+                                                    setShowPreview(true)
+                                                }
                                             } else {
                                                 setWrongExplanation(result.explanation)
                                             }
                                         }}
                                         className="inline-flex items-center gap-2 rounded-xl border border-violet-400/35 bg-violet-500/20 px-4 py-2 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30"
                                     >
-                                        Submit
+                                        {isLastQuestion ? "Preview" : "Submit"}
                                         <ArrowRight className="h-4 w-4" />
                                     </button>
                                 </div>
@@ -168,10 +225,14 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
                             </button>
                             <button
                                 onClick={() => {
+                                    setWrongIndices((prev) => [...prev, (Number(currentQuestion.id) - 1)])
                                     setWrongExplanation(null)
                                     setAnswer("")
                                     if(currentQuestionIndex < totalQuestions - 1){
                                         setCurrentQuestionIndex((previous) => previous + 1)
+                                    }
+                                    if(isLastQuestion){
+                                        setShowPreview(true)
                                     }
                                 }}
                                 className="rounded-xl border border-violet-400/35 bg-violet-500/20 px-4 py-2 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30"
@@ -188,5 +249,12 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
     async function processAnswer(answer: string, question: string | undefined){
         const result = await axios.post(`http://localhost:5000/process-answer`, {answer: answer, question: question})
         return result.data
+    }
+
+    async function saveScore(score: number, wrong: number[], id: string, userId: string | null | undefined){
+        const hasPassed = Math.round((score / totalQuestions) * 100) >= 80
+        const token = await getToken()
+        const result = await axios.patch(`http://localhost:5000/study-session/save/${userId}/${id}`, {score: score, wrong: wrong, passed: hasPassed}, {headers: {Authorization: `Bearer ${token}`}})
+        console.log(result.status)
     }
 }
