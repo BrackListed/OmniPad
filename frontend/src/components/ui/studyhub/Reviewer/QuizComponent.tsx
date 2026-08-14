@@ -237,8 +237,9 @@ export function QuizComponent({type, fileId}: QuizProps){
     )
 
     async function saveScore(score: number, wrong: number[], id: string, userId: string | null | undefined){
+        const hasPassed = Math.round((score / totalQuestions) * 100) >= 80
         const token = await getToken()
-        const result = await axios.patch(`http://localhost:5000/study-session/save/${userId}/${id}`, {score: score, wrong: wrong}, {headers: {Authorization: `Bearer ${token}`}})
+        const result = await axios.patch(`http://localhost:5000/study-session/save/${userId}/${id}`, {score: score, wrong: wrong, passed: hasPassed}, {headers: {Authorization: `Bearer ${token}`}})
         console.log(result.status)
     }
 }
