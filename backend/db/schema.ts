@@ -42,7 +42,7 @@ export const study_sessions = pgTable("study_sessions", {
     score: integer("score").notNull(), 
     passed: boolean("passed").default(false), 
     feedback: text("feedback").default("Finish to get feedback!"),
-    wrong_index: integer("wrong_index"), //reminder to myself: since payload is in the frontend, use this to grab the items the user got wrong
+    wrong_index: integer("wrong_index").array(), //reminder to myself: since payload is in the frontend, use this to grab the items the user got wrong
     payload: jsonb("payload"),
     created_at: timestamp("created_at", { withTimezone: true }).defaultNow()
 });
