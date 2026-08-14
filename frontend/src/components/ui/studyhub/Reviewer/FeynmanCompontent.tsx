@@ -29,6 +29,8 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
     const [session, setSession] = useState<payloadType | null>(null)
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
     const [answer, setAnswer] = useState("")
+    const [score, setScore] = useState(0)
+    const [wrongExplanation, setWrongExplanation] = useState<string | null>(null)
     useEffect(() => {
         if(!userId || !type || !fileId) return
 
@@ -80,8 +82,13 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
                             <p className="mt-1 text-sm text-zinc-400">Module: {session?.title ?? "Untitled"}</p>
                         </div>
 
-                        <div className="inline-flex items-center rounded-full border border-violet-400/30 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-200">
-                            {type}
+                        <div className="flex items-center gap-2">
+                            <div className="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300">
+                                Score: {score}
+                            </div>
+                            <div className="inline-flex items-center rounded-full border border-violet-400/30 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-200">
+                                {type}
+                            </div>
                         </div>
                     </div>
 
@@ -118,10 +125,15 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
                                     onClick={async() => {
                                         if(hasAnswer){
                                             const result = await processAnswer(answer, currentQuestion.question)
-                                            if((currentQuestionIndex < totalQuestions - 1) && result){
-                                                setCurrentQuestionIndex((previous) => previous + 1)
+                                            if(result.correct){
+                                                setScore((previous) => previous + 1)
+                                                if(currentQuestionIndex < totalQuestions - 1){
+                                                    setCurrentQuestionIndex((previous) => previous + 1)
+                                                }
+                                                setAnswer("")
+                                            } else {
+                                                setWrongExplanation(result.explanation)
                                             }
-                                            setAnswer("")
                                             return
                                         }
 
@@ -143,12 +155,45 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
                     )}
                 </section>
             </main>
+
+            {wrongExplanation !== null && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+                    <div className="w-full max-w-md rounded-3xl border border-red-400/30 bg-[#141420] p-6 shadow-[0_28px_60px_-40px_rgba(239,68,68,0.5)]">
+                        <p className="text-xs uppercase tracking-[0.18em] text-red-300">Not quite</p>
+                        <h3 className="mt-2 text-xl font-semibold text-white">Here's why</h3>
+                        <p className="mt-3 text-sm leading-relaxed text-zinc-300">{wrongExplanation}</p>
+
+                        <div className="mt-6 flex items-center justify-end gap-3">
+                            <button
+                                onClick={() => {
+                                    setAnswer("")
+                                    setWrongExplanation(null)
+                                }}
+                                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-zinc-200 transition hover:bg-white/10"
+                            >
+                                Retry
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setWrongExplanation(null)
+                                    setAnswer("")
+                                    if(currentQuestionIndex < totalQuestions - 1){
+                                        setCurrentQuestionIndex((previous) => previous + 1)
+                                    }
+                                }}
+                                className="rounded-xl border border-violet-400/35 bg-violet-500/20 px-4 py-2 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30"
+                            >
+                                Proceed
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 
     async function processAnswer(answer: string, question: string | undefined){
         const result = await axios.post(`http://localhost:5000/process-answer`, {answer: answer, question: question})
-        console.log(result.data)
-        return result.data.correct
+        return result.data
     }
 }
