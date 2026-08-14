@@ -120,10 +120,10 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
                                 />
                             </div>
 
-                            <div className="mt-6 flex items-center justify-end">
-                                <button
-                                    onClick={async() => {
-                                        if(hasAnswer){
+                            {hasAnswer && (
+                                <div className="mt-6 flex items-center justify-end">
+                                    <button
+                                        onClick={async() => {
                                             const result = await processAnswer(answer, currentQuestion.question)
                                             if(result.correct){
                                                 setScore((previous) => previous + 1)
@@ -134,21 +134,14 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
                                             } else {
                                                 setWrongExplanation(result.explanation)
                                             }
-                                            return
-                                        }
-
-                                        if(currentQuestionIndex < totalQuestions - 1){
-                                            setCurrentQuestionIndex((previous) => previous + 1)
-                                            setAnswer("")
-                                        }
-                                    }}
-                                    disabled={currentQuestionIndex >= totalQuestions - 1 && !hasAnswer}
-                                    className="inline-flex items-center gap-2 rounded-xl border border-violet-400/35 bg-violet-500/20 px-4 py-2 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30 disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                    {hasAnswer ? "Submit" : "Next"}
-                                    <ArrowRight className="h-4 w-4" />
-                                </button>
-                            </div>
+                                        }}
+                                        className="inline-flex items-center gap-2 rounded-xl border border-violet-400/35 bg-violet-500/20 px-4 py-2 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30"
+                                    >
+                                        Submit
+                                        <ArrowRight className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            )}
                         </>
                     ) : (
                         <p className="text-sm text-zinc-400">No questions found for this session yet.</p>
