@@ -138,7 +138,6 @@ app.post("/generate/session/:userId", async(req, res) => {
   if(existingSession.rows.length > 0){
     return res.status(200).json({message: "Study session already exists", fileId: fileId})
   }
-
   const myQueue = new Queue('pdf-processing', {connection: redisOptions});
   const job = await myQueue.add('extract-and-generate', {
     fileId: fileId,

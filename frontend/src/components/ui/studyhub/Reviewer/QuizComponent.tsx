@@ -38,6 +38,8 @@ export function QuizComponent({type, fileId}: QuizProps){
     const [wrongIndices, setWrongIndices] = useState<number[]>([])
     const [showPreview, setShowPreview] = useState(false)
     const [sessionId, setSessionId] = useState("")
+    const [passed, setPassed] = useState(false)
+    const [savedScore, setSavedScore] = useState(0)
     useEffect(() => {
         if(!userId || !type || !fileId) return
 
@@ -48,6 +50,8 @@ export function QuizComponent({type, fileId}: QuizProps){
                 const payload = result?.data?.[0]?.payload ?? result?.data?.payload ?? result?.data
                 setSession(payload)
                 setSessionId(result.data[0].id)
+                setPassed(result.data[0].passed)
+                setSavedScore(result.data[0].score)
             }
             catch(error){
                 console.error("Failed to fetch Quiz session", error)
@@ -77,6 +81,29 @@ export function QuizComponent({type, fileId}: QuizProps){
     const totalQuestions = questions.length
     const hasSelection = selectedOption.trim().length > 0
     const isLastQuestion = currentQuestionIndex >= totalQuestions - 1
+
+    if(passed){
+        return(
+            <div className="flex min-h-screen bg-[#0b0b12]">
+                <LeftSidebar />
+                <main className="flex flex-1 items-center justify-center p-8">
+                    <section className="w-full max-w-2xl rounded-3xl border border-emerald-500/20 bg-[#11111a]/90 p-8 text-center shadow-[0_24px_50px_-35px_rgba(46,16,101,0.75)]">
+                        <p className="text-xs uppercase tracking-[0.2em] text-emerald-300">Already Passed</p>
+                        <h1 className="mt-3 text-3xl font-semibold text-white">You've already passed this session</h1>
+                        <p className="mt-3 text-sm text-zinc-400">Your Score: {savedScore} / {totalQuestions}</p>
+
+                        <button
+                            onClick={() => setPassed(false)}
+                            className="mt-8 rounded-xl border border-violet-400/35 bg-violet-500/20 px-5 py-2.5 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30"
+                        >
+                            Retry?
+                        </button>
+                    </section>
+                </main>
+            </div>
+        )
+    }
+
     if(showIntro){
         return(
             <div className="flex min-h-screen bg-[#0b0b12]">

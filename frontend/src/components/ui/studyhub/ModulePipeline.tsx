@@ -294,6 +294,7 @@ export function ModulePipeline() {
   }
 
   async function uploadFile(file: File | undefined){
+    if(!userId) return 
     const formData = new FormData()
     formData.append("file", file!)
     const token = getToken()
@@ -314,7 +315,7 @@ export function ModulePipeline() {
     setGeneratingType(type)
     try {
       const token = await getToken()
-      const result = await axios.post(`http://localhost:5000/generate/session/${userId}`, {type: type, fileId: id, path: path,}, {headers: {Authorization: `Bearer ${token}`}})
+      const result = await axios.post(`http://localhost:5000/generate/session/${userId}`, {type: type, fileId: id, path: path}, {headers: {Authorization: `Bearer ${token}`}})
       navigate(`/study-hub/${type}/${result.data.fileId}`)
     } catch (err) {
       console.error("Failed to generate study session:", err)
