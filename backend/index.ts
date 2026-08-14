@@ -10,6 +10,7 @@ import path from "path"
 import {Queue, QueueEvents} from "bullmq"
 import fs from "fs"
 import crypto from "crypto";
+import Groq from "groq-sdk";
 const app = express()
 const pool = new Pool({connectionString: process.env.DATABASE_URL})
 const db = drizzle(process.env.DATABASE_URL!)
@@ -60,6 +61,7 @@ const storage = multer.diskStorage({
 })
 
 const upload = multer({storage: storage})
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 app.get("/tasks/:userId", async(req, res) => {
   const {userId} = req.params
@@ -154,6 +156,35 @@ app.post("/generate/session/:userId", async(req, res) => {
   return res.status(200).json({message: "Study session ready", fileId: fileId})
 })
 
+app.post("/process-answer", async(req, res) => {
+  const {answer, question} = req.body
+  const completions = await groq.chat.completions.create({
+    model: "openai/gpt-oss-20b",
+    response_format: {type: "json_object"},
+    messages: [{
+      role: "system",
+      content: `You are an expert conceptual tutor. Evaluate the user's provided statement across any domain using the Feynman technique by checking for genuine conceptual understanding, clear plain-language explanation, avoidance of jargon-masking, and logical coherence.
+      Output strictly in JSON matching this schema:
+      {
+        "correct": boolean,
+        "explanation": "string"
+      }
+      Rules:
+      1. Set 'correct' to true if correct, or false if flawed.
+      2. If 'correct' is false, populate 'explanation'. If true, set to "".
+      3. Output ONLY raw JSON.`
+    },
+    {
+      role: 'user',
+      content: `Question: ${question} \n Answer: ${answer}`
+    }
+    ]
+  })
+  const responseContent = completions.choices[0]?.message?.content ?? "{}"
+  const data = JSON.parse(responseContent)
+  return res.json(data)
+})
+
 app.patch("/study-session/save/:userId/:sessionId", async(req, res) => {
   try{
     const {userId, sessionId} = req.params
@@ -166,6 +197,7 @@ app.patch("/study-session/save/:userId/:sessionId", async(req, res) => {
     return res.status(500).json({status: false, message: "Failed to save to database"})
   }
 })
+
 
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => console.log(`Server listening on port ${PORT}`))

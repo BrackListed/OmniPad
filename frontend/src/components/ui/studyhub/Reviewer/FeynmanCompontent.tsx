@@ -115,9 +115,10 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
 
                             <div className="mt-6 flex items-center justify-end">
                                 <button
-                                    onClick={() => {
+                                    onClick={async() => {
                                         if(hasAnswer){
-                                            if(currentQuestionIndex < totalQuestions - 1){
+                                            const result = await processAnswer(answer, currentQuestion.question)
+                                            if((currentQuestionIndex < totalQuestions - 1) && result){
                                                 setCurrentQuestionIndex((previous) => previous + 1)
                                             }
                                             setAnswer("")
@@ -144,4 +145,10 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
             </main>
         </div>
     )
+
+    async function processAnswer(answer: string, question: string | undefined){
+        const result = await axios.post(`http://localhost:5000/process-answer`, {answer: answer, question: question})
+        console.log(result.data)
+        return result.data.correct
+    }
 }
