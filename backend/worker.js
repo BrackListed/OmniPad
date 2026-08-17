@@ -24,6 +24,7 @@ function getPrompt(type){
                             "id": 1,
                             "concept": "Concept Name",
                             "question": "Explain [concept] as if you were teaching it to a 10-year-old."
+                            "referenceAnswer": "Clear, concise baseline answer based on the source text explaining the core idea."
                         }
                     ]
                 }`
@@ -39,6 +40,7 @@ function getPrompt(type){
                             "id": 1,
                             "prompt": "Why do you think [Concept] happens under [Condition]?",
                             "guidanceHint": "Think about what happens to [Variable] when [Condition] changes."
+                            "referenceAnswer": "Clear, concise baseline answer based on the source text explaining the core idea."
                         }
                     ]
                 }`

@@ -157,13 +157,19 @@ app.post("/generate/session/:userId", async(req, res) => {
 })
 
 app.post("/process-answer", async(req, res) => {
-  const {answer, question} = req.body
+  const {answer, question, reference} = req.body
+
   const completions = await groq.chat.completions.create({
     model: "openai/gpt-oss-20b",
     response_format: {type: "json_object"},
     messages: [{
       role: "system",
-      content: `You are an expert conceptual tutor. Evaluate the user's provided statement across any domain using the Feynman technique by checking for genuine conceptual understanding, clear plain-language explanation, avoidance of jargon-masking, and logical coherence.
+      content: `You are a pragmatic, expert conceptual tutor. Evaluate the user's answer against the Reference Answer using the Feynman technique: check for genuine conceptual understanding using plain, simple language and zero jargon.
+      GUIDELINE:
+      1. FEYNMAN + REFERENCE CHECK: Mark 'correct' as true if the user explains the core idea of the Reference Answer simply and accurately, even if brief or using everyday analogies.
+      2. NO PEDANTRY: Do not force rigid schemas, lengthy rubrics, or academic nitpicking.
+      3. PRACTICAL ADDITIONS ONLY: If an explanation needs work for a specific target audience (e.g., a 10-year-old), validate what works first, then offer 1 concise, concrete example or tweak.
+      4. TONE: Direct, encouraging, concise. Speak like a smart peer, not a strict grader.
       Output strictly in JSON matching this schema:
       {
         "correct": boolean,
@@ -172,7 +178,9 @@ app.post("/process-answer", async(req, res) => {
       Rules:
       1. Set 'correct' to true if correct, or false if flawed.
       2. If 'correct' is false, populate 'explanation'. If true, set to "".
-      3. Output ONLY raw JSON.`
+      3. Output ONLY raw JSON.
+      
+      Reference Answer: ${reference}`
     },
     {
       role: 'user',

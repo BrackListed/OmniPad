@@ -16,6 +16,7 @@ interface questionsType{
     concept: string
     question?: string
     prompt?: string
+    referenceAnswer: string
 }
 
 interface payloadType{
@@ -178,7 +179,8 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
                                 <div className="mt-6 flex items-center justify-end">
                                     <button
                                         onClick={async() => {
-                                            const result = await processAnswer(answer, currentQuestion.question)
+                                            console.log(currentQuestion)
+                                            const result = await processAnswer(answer, currentQuestion.question, currentQuestion.referenceAnswer)
                                             if(result.correct){
                                                 setScore((previous) => previous + 1)
                                                 if(currentQuestionIndex < totalQuestions - 1){
@@ -246,8 +248,9 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
         </div>
     )
 
-    async function processAnswer(answer: string, question: string | undefined){
-        const result = await axios.post(`http://localhost:5000/process-answer`, {answer: answer, question: question})
+    async function processAnswer(answer: string, question: string | undefined, reference: string){
+        console.log(reference)
+        const result = await axios.post(`http://localhost:5000/process-answer`, {answer: answer, question: question, reference: reference})
         return result.data
     }
 
