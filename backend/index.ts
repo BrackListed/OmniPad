@@ -207,7 +207,7 @@ app.patch("/study-session/save/:userId/:sessionId", async(req, res) => {
     const {userId, sessionId} = req.params
     const id = await pool.query("SELECT id FROM users WHERE clerk_user_id = $1", [userId])
     const {score, wrong, passed} = req.body
-    await pool.query("UPDATE study_sessions SET score = $1, wrong_index = $2, passed = $3 WHERE id = $4 AND user_id = $5", [score, wrong, passed, sessionId, id.rows[0].id])
+    await pool.query("UPDATE study_sessions SET score = $1, wrong_index = $2, passed = $3, already_attempted = true WHERE id = $4 AND user_id = $5", [score, wrong, passed, sessionId, id.rows[0].id])
     res.json({status: true, message: "Successfully sent to database!"})
   } catch(err){
     console.error("Can't save to database", err)

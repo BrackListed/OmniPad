@@ -44,6 +44,7 @@ export const study_sessions = pgTable("study_sessions", {
     feedback: text("feedback").default("Finish to get feedback!"),
     wrong_index: integer("wrong_index").array(), //reminder to myself: since payload is in the frontend, use this to grab the items the user got wrong
     payload: jsonb("payload"),
+    already_attempted: boolean("already_attempted").default(false),
     created_at: timestamp("created_at", { withTimezone: true }).defaultNow()
 });
 

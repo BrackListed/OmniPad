@@ -1,6 +1,6 @@
 import { useAuth } from "@clerk/react"
 import axios from "axios"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { ArrowRight, Loader2 } from "lucide-react"
 import { LeftSidebar } from "../../dashboard/LeftSidebar"
 import { MathText } from "./MathText"
@@ -39,11 +39,15 @@ export function SocraticComponent({type, fileId}: socraticProps){
     const [showPreview, setShowPreview] = useState(false)
     const [sessionId, setSessionId] = useState("")
     const [passed, setPassed] = useState(false)
+    const [alreadyAttempted, setAlreadyAttempted] = useState(false)
     const [retrying, setRetrying] = useState(false)
     const [attemptedTab, setAttemptedTab] = useState<"summary" | "wrong">("summary")
     const navigate = useNavigate()
+    const hasFetchedRef = useRef(false)
     useEffect(() => {
         if(!userId || !type || !fileId) return
+        if(hasFetchedRef.current) return
+        hasFetchedRef.current = true
 
         const fetchSessionData = async() => {
             try{
@@ -55,6 +59,7 @@ export function SocraticComponent({type, fileId}: socraticProps){
                 setPassed(result.data[0].passed)
                 setScore(result.data[0].score)
                 setWrongIndices(result.data[0]?.wrong_index)
+                setAlreadyAttempted(result.data[0].already_attempted)
             }
             catch(error){
                 console.error("Failed to fetch Socratic session", error)
@@ -84,7 +89,7 @@ export function SocraticComponent({type, fileId}: socraticProps){
     const totalQuestions = questions.length
     const hasAnswer = answer.trim().length > 0
     const isLastQuestion = currentQuestionIndex >= totalQuestions - 1
-    const hasAttempted = wrongIndices !== undefined && wrongIndices !== null
+    const hasAttempted = alreadyAttempted
 
     if(hasAttempted && !retrying){
         const wrongQuestions = (wrongIndices ?? []).map((index) => questions[index]).filter(Boolean)
