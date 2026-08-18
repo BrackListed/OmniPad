@@ -7,7 +7,7 @@ import { drizzle } from "drizzle-orm/node-postgres"
 import { clerkMiddleware } from '@clerk/express'
 import multer from "multer"
 import path from "path"
-import {Queue, QueueEvents} from "bullmq"
+import {Queue} from "bullmq"
 import fs from "fs"
 import crypto from "crypto";
 import Groq from "groq-sdk";
@@ -48,8 +48,18 @@ app.post('/webhooks/clerk', express.raw({ type: 'application/json' }), async (re
 app.use(clerkMiddleware())
 app.use(express.json())
 
-const redisOptions = {host: "localhost", port: 6379}
-const pdfQueueEvents = new QueueEvents('pdf-processing', {connection: redisOptions})
+const redisOptions = {host: "localhost", port: 6379, maxRetriesPerRequest: null}
+
+async function waitForJob(job: Awaited<ReturnType<Queue['add']>>, timeoutMs = 60000, intervalMs = 300) {
+  const start = Date.now()
+  while (Date.now() - start < timeoutMs) {
+    const state = await job.getState()
+    if (state === 'completed') return
+    if (state === 'failed') throw new Error(job.failedReason || 'Job failed')
+    await new Promise((resolve) => setTimeout(resolve, intervalMs))
+  }
+  throw new Error('Job timed out')
+}
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'uploads/')
@@ -148,7 +158,7 @@ app.post("/generate/session/:userId", async(req, res) => {
     filePath: path
   })
   try {
-    await job.waitUntilFinished(pdfQueueEvents)
+    await waitForJob(job)
   } catch (err) {
     console.error('Study session generation failed:', err)
     return res.status(500).json({message: "Failed to generate study session"})
