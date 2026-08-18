@@ -158,7 +158,6 @@ app.post("/generate/session/:userId", async(req, res) => {
 
 app.post("/process-answer", async(req, res) => {
   const {answer, question, reference} = req.body
-
   const completions = await groq.chat.completions.create({
     model: "openai/gpt-oss-20b",
     response_format: {type: "json_object"},
