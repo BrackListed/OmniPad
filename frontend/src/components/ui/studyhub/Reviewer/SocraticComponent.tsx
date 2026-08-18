@@ -1,9 +1,11 @@
 import { useAuth } from "@clerk/react"
 import axios from "axios"
 import { useEffect, useState } from "react"
-import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react"
+import { ArrowRight, Loader2 } from "lucide-react"
 import { LeftSidebar } from "../../dashboard/LeftSidebar"
 import { MathText } from "./MathText"
+import { Dictaphone } from "./Dictaphone"
+import { useNavigate } from "react-router-dom"
 
 interface socraticProps{
     type: string | undefined
@@ -16,6 +18,7 @@ interface questionsType{
     question?: string
     prompt?: string
     guidanceHint?: string
+    referenceAnswer: string
 }
 
 interface payloadType{
@@ -25,13 +28,20 @@ interface payloadType{
 }
 
 export function SocraticComponent({type, fileId}: socraticProps){
-    const {userId, getToken} = useAuth()
-    const [session, setSession] = useState<payloadType | null>(null)
+    const {getToken, userId}  = useAuth()
     const [loading, setLoading] = useState(true)
-    const [showIntro, setShowIntro] = useState(true)
+    const [session, setSession] = useState<payloadType | null>(null)
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
     const [answer, setAnswer] = useState("")
-
+    const [score, setScore] = useState(0)
+    const [wrongExplanation, setWrongExplanation] = useState<string | null>(null)
+    const [wrongIndices, setWrongIndices] = useState<number[] | null>(null)
+    const [showPreview, setShowPreview] = useState(false)
+    const [sessionId, setSessionId] = useState("")
+    const [passed, setPassed] = useState(false)
+    const [retrying, setRetrying] = useState(false)
+    const [attemptedTab, setAttemptedTab] = useState<"summary" | "wrong">("summary")
+    const navigate = useNavigate()
     useEffect(() => {
         if(!userId || !type || !fileId) return
 
@@ -41,6 +51,10 @@ export function SocraticComponent({type, fileId}: socraticProps){
                 const result = await axios.get(`http://localhost:5000/session/${userId}/${type}/${fileId}`, {headers: {Authorization: `Bearer ${token}`}})
                 const payload = result?.data?.[0]?.payload ?? result?.data?.payload ?? result?.data
                 setSession(payload)
+                setSessionId(result.data[0].id)
+                setPassed(result.data[0].passed)
+                setScore(result.data[0].score)
+                setWrongIndices(result.data[0]?.wrong_index)
             }
             catch(error){
                 console.error("Failed to fetch Socratic session", error)
@@ -69,23 +83,136 @@ export function SocraticComponent({type, fileId}: socraticProps){
     const currentQuestion = questions[currentQuestionIndex]
     const totalQuestions = questions.length
     const hasAnswer = answer.trim().length > 0
+    const isLastQuestion = currentQuestionIndex >= totalQuestions - 1
+    const hasAttempted = wrongIndices !== undefined && wrongIndices !== null
 
-    if(showIntro){
+    if(hasAttempted && !retrying){
+        const wrongQuestions = (wrongIndices ?? []).map((index) => questions[index]).filter(Boolean)
+
         return(
             <div className="flex min-h-screen bg-[#0b0b12]">
                 <LeftSidebar />
                 <main className="flex flex-1 items-center justify-center p-8">
-                    <section className="w-full max-w-2xl rounded-3xl border border-violet-500/20 bg-[#11111a]/90 p-8 text-center shadow-[0_24px_50px_-35px_rgba(46,16,101,0.75)]">
-                        <p className="text-xs uppercase tracking-[0.2em] text-violet-300">{session?.type ?? type}</p>
-                        <h1 className="mt-3 text-3xl font-semibold text-white">Topic: {session?.title ?? "Untitled"}</h1>
-                        <p className="mt-3 text-sm text-zinc-400">Socratic prompts will appear one at a time.</p>
+                    <section className="w-full max-w-2xl rounded-3xl border border-violet-500/20 bg-[#11111a]/90 p-8 shadow-[0_24px_50px_-35px_rgba(46,16,101,0.75)]">
+                        <p className="text-xs uppercase tracking-[0.2em] text-violet-300">Already Attempted</p>
+                        <h1 className="mt-3 text-3xl font-semibold text-white">You've already attempted this study session</h1>
 
-                        <button
-                            onClick={() => setShowIntro(false)}
-                            className="mt-8 rounded-xl border border-violet-400/35 bg-violet-500/20 px-5 py-2.5 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30"
-                        >
-                            Start Session
-                        </button>
+                        <div className="mt-5 flex items-center gap-2">
+                            <button
+                                onClick={() => setAttemptedTab("summary")}
+                                className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                                    attemptedTab === "summary"
+                                        ? "border-violet-400/40 bg-violet-500/20 text-violet-200"
+                                        : "border-white/10 bg-white/5 text-zinc-400 hover:bg-white/10"
+                                }`}
+                            >
+                                Summary
+                            </button>
+                            <button
+                                onClick={() => setAttemptedTab("wrong")}
+                                className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                                    attemptedTab === "wrong"
+                                        ? "border-violet-400/40 bg-violet-500/20 text-violet-200"
+                                        : "border-white/10 bg-white/5 text-zinc-400 hover:bg-white/10"
+                                }`}
+                            >
+                                Wrong Questions
+                            </button>
+                        </div>
+
+                        {attemptedTab === "summary" ? (
+                            <div className="mt-6">
+                                <p className={`text-sm font-medium ${passed ? "text-emerald-300" : "text-red-300"}`}>
+                                    {passed ? "Passed" : "Not Passed"}
+                                </p>
+                                <p className="mt-1 text-sm text-zinc-400">Your Score: {score} / {totalQuestions}</p>
+                            </div>
+                        ) : (
+                            <div className="mt-6">
+                                {wrongQuestions.length > 0 ? (
+                                    <ul className="flex flex-col gap-2">
+                                        {wrongQuestions.map((question) => (
+                                            <li key={question.id} className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-zinc-200">
+                                                <MathText text={question.prompt ?? question.question ?? ""} />
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-sm text-emerald-300">You didn't get anything wrong! Great job</p>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="mt-8 flex items-center gap-3">
+                            <button
+                                onClick={() => {
+                                    setRetrying(true)
+                                    setCurrentQuestionIndex(0)
+                                    setAnswer("")
+                                    setScore(0)
+                                    setWrongIndices([])
+                                }}
+                                className="rounded-xl border border-violet-400/35 bg-violet-500/20 px-5 py-2.5 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30"
+                            >
+                                Retry
+                            </button>
+                            <button
+                                onClick={() => navigate("/study-hub")}
+                                className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-zinc-200 transition hover:bg-white/10"
+                            >
+                                Back to Study Hub
+                            </button>
+                        </div>
+                    </section>
+                </main>
+            </div>
+        )
+    }
+
+    if(showPreview){
+        const wrongQuestions = (wrongIndices ?? []).map((index) => questions[index]).filter(Boolean)
+
+        return(
+            <div className="flex min-h-screen bg-[#0b0b12]">
+                <LeftSidebar />
+                <main className="flex flex-1 items-center justify-center p-8">
+                    <section className="w-full max-w-2xl rounded-3xl border border-violet-500/20 bg-[#11111a]/90 p-8 shadow-[0_24px_50px_-35px_rgba(46,16,101,0.75)]">
+                        <p className="text-xs uppercase tracking-[0.2em] text-violet-300">Results</p>
+                        <h1 className="mt-3 text-3xl font-semibold text-white">You scored {score} / {totalQuestions}</h1>
+
+                        {wrongQuestions.length > 0 && (
+                            <div className="mt-6">
+                                <p className="text-sm font-medium text-zinc-300">Questions you got wrong:</p>
+                                <ul className="mt-3 flex flex-col gap-2">
+                                    {wrongQuestions.map((question) => (
+                                        <li key={question.id} className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-zinc-200">
+                                            <MathText text={question.prompt ?? question.question ?? ""} />
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
+                        <div className="mt-8 flex items-center gap-3">
+                            <button
+                                onClick={() => {
+                                    setCurrentQuestionIndex(0)
+                                    setAnswer("")
+                                    setScore(0)
+                                    setWrongIndices([])
+                                    setShowPreview(false)
+                                }}
+                                className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-zinc-200 transition hover:bg-white/10"
+                            >
+                                Retry
+                            </button>
+                            <button
+                                onClick={async() => {navigate("/study-hub") ; await saveScore(score, wrongIndices ?? [], sessionId, userId)}}
+                                className="rounded-xl border border-violet-400/35 bg-violet-500/20 px-5 py-2.5 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30"
+                            >
+                                Save to Database
+                            </button>
+                        </div>
                     </section>
                 </main>
             </div>
@@ -104,8 +231,13 @@ export function SocraticComponent({type, fileId}: socraticProps){
                             <p className="mt-1 text-sm text-zinc-400">Topic: {session?.title ?? "Untitled"}</p>
                         </div>
 
-                        <div className="inline-flex items-center rounded-full border border-violet-400/30 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-200">
-                            {type}
+                        <div className="flex items-center gap-2">
+                            <div className="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300">
+                                Score: {score}
+                            </div>
+                            <div className="inline-flex items-center rounded-full border border-violet-400/30 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-200">
+                                {type}
+                            </div>
                         </div>
                     </div>
 
@@ -135,48 +267,94 @@ export function SocraticComponent({type, fileId}: socraticProps){
                                 </p>
                             )}
 
-                            <textarea
-                                value={answer}
-                                onChange={(event) => setAnswer(event.target.value)}
-                                placeholder="Write your reasoning..."
-                                className="mt-6 min-h-72 w-full rounded-2xl border border-white/10 bg-[#0f0f17] px-4 py-3 text-base text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-violet-400"
-                            />
-
-                            <div className="mt-6 flex items-center justify-between">
-                                <button
-                                    onClick={() => {
-                                        if(currentQuestionIndex > 0){
-                                            setCurrentQuestionIndex((previous) => previous - 1)
-                                            setAnswer("")
-                                        }
-                                    }}
-                                    disabled={currentQuestionIndex === 0}
-                                    className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                    <ArrowLeft className="h-4 w-4" />
-                                    Previous
-                                </button>
-
-                                <button
-                                    onClick={() => {
-                                        if(currentQuestionIndex < totalQuestions - 1){
-                                            setCurrentQuestionIndex((previous) => previous + 1)
-                                            setAnswer("")
-                                        }
-                                    }}
-                                    disabled={currentQuestionIndex >= totalQuestions - 1}
-                                    className="inline-flex items-center gap-2 rounded-xl border border-violet-400/35 bg-violet-500/20 px-4 py-2 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30 disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                    {hasAnswer ? "Submit" : "Next"}
-                                    <ArrowRight className="h-4 w-4" />
-                                </button>
+                            <div className="mt-6">
+                                <Dictaphone
+                                    value={answer}
+                                    onChange={setAnswer}
+                                    placeholder="Write your reasoning..."
+                                />
                             </div>
+
+                            {hasAnswer && (
+                                <div className="mt-6 flex items-center justify-end">
+                                    <button
+                                        onClick={async() => {
+                                            const result = await processAnswer(answer, currentQuestion.prompt ?? currentQuestion.question, currentQuestion.referenceAnswer)
+                                            if(result.correct){
+                                                setScore((previous) => previous + 1)
+                                                if(currentQuestionIndex < totalQuestions - 1){
+                                                    setCurrentQuestionIndex((previous) => previous + 1)
+                                                }
+                                                setAnswer("")
+                                                if(isLastQuestion){
+                                                    setShowPreview(true)
+                                                }
+                                            } else {
+                                                setWrongExplanation(result.explanation)
+                                            }
+                                        }}
+                                        className="inline-flex items-center gap-2 rounded-xl border border-violet-400/35 bg-violet-500/20 px-4 py-2 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30"
+                                    >
+                                        {isLastQuestion ? "Preview" : "Submit"}
+                                        <ArrowRight className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            )}
                         </>
                     ) : (
                         <p className="text-sm text-zinc-400">No questions found for this session yet.</p>
                     )}
                 </section>
             </main>
+
+            {wrongExplanation !== null && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+                    <div className="w-full max-w-md rounded-3xl border border-red-400/30 bg-[#141420] p-6 shadow-[0_28px_60px_-40px_rgba(239,68,68,0.5)]">
+                        <p className="text-xs uppercase tracking-[0.18em] text-red-300">Not quite</p>
+                        <h3 className="mt-2 text-xl font-semibold text-white">Here's why</h3>
+                        <p className="mt-3 text-sm leading-relaxed text-zinc-300">{wrongExplanation}</p>
+
+                        <div className="mt-6 flex items-center justify-end gap-3">
+                            <button
+                                onClick={() => {
+                                    setAnswer("")
+                                    setWrongExplanation(null)
+                                }}
+                                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-zinc-200 transition hover:bg-white/10"
+                            >
+                                Retry
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setWrongIndices((prev) => [...(prev ?? []), (Number(currentQuestion.id) - 1)])
+                                    setWrongExplanation(null)
+                                    setAnswer("")
+                                    if(currentQuestionIndex < totalQuestions - 1){
+                                        setCurrentQuestionIndex((previous) => previous + 1)
+                                    }
+                                    if(isLastQuestion){
+                                        setShowPreview(true)
+                                    }
+                                }}
+                                className="rounded-xl border border-violet-400/35 bg-violet-500/20 px-4 py-2 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30"
+                            >
+                                Proceed
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
+
+    async function processAnswer(answer: string, question: string | undefined, reference: string){
+        const result = await axios.post(`http://localhost:5000/process-answer`, {answer: answer, question: question, reference: reference})
+        return result.data
+    }
+
+    async function saveScore(score: number, wrong: number[], id: string, userId: string | null | undefined){
+        const hasPassed = Math.round((score / totalQuestions) * 100) >= 80
+        const token = await getToken()
+        await axios.patch(`http://localhost:5000/study-session/save/${userId}/${id}`, {score: score, wrong: wrong, passed: hasPassed}, {headers: {Authorization: `Bearer ${token}`}})
+    }
 }

@@ -33,7 +33,7 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
     const [answer, setAnswer] = useState("")
     const [score, setScore] = useState(0)
     const [wrongExplanation, setWrongExplanation] = useState<string | null>(null)
-    const [wrongIndices, setWrongIndices] = useState<number[]>([])
+    const [wrongIndices, setWrongIndices] = useState<number[] | null>(null)
     const [showPreview, setShowPreview] = useState(false)
     const [sessionId, setSessionId] = useState("")
     const [passed, setPassed] = useState(false)
@@ -83,10 +83,10 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
     const totalQuestions = questions.length
     const hasAnswer = answer.trim().length > 0
     const isLastQuestion = currentQuestionIndex >= totalQuestions - 1
-    const hasAttempted = score !== undefined && score !== null && score >= 0
+    const hasAttempted = wrongIndices !== undefined && wrongIndices !== null
 
     if(hasAttempted && !retrying){
-        const wrongQuestions = wrongIndices.map((index) => questions[index]).filter(Boolean)
+        const wrongQuestions = (wrongIndices ?? []).map((index) => questions[index]).filter(Boolean)
 
         return(
             <div className="flex min-h-screen bg-[#0b0b12]">
@@ -169,7 +169,7 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
     }
 
     if(showPreview){
-        const wrongQuestions = wrongIndices.map((index) => questions[index]).filter(Boolean)
+        const wrongQuestions = (wrongIndices ?? []).map((index) => questions[index]).filter(Boolean)
 
         return(
             <div className="flex min-h-screen bg-[#0b0b12]">
@@ -206,7 +206,7 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
                                 Retry
                             </button>
                             <button
-                                onClick={async() => {navigate("/study-hub") ; await saveScore(score, wrongIndices, sessionId, userId)}}
+                                onClick={async() => {navigate("/study-hub") ; await saveScore(score, wrongIndices ?? [], sessionId, userId)}}
                                 className="rounded-xl border border-violet-400/35 bg-violet-500/20 px-5 py-2.5 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30"
                             >
                                 Save to Database
@@ -319,7 +319,7 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
                             </button>
                             <button
                                 onClick={() => {
-                                    setWrongIndices((prev) => [...prev, (Number(currentQuestion.id) - 1)])
+                                    setWrongIndices((prev) => [...(prev ?? []), (Number(currentQuestion.id) - 1)])
                                     setWrongExplanation(null)
                                     setAnswer("")
                                     if(currentQuestionIndex < totalQuestions - 1){
