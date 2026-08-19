@@ -1,5 +1,5 @@
 import { useAuth } from "@clerk/react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { LeftSidebar } from "../components/ui/dashboard/LeftSidebar";
 import { TopBar } from "../components/ui/dashboard/TopBar";
 import { PriorityQueueCard } from "../components/ui/dashboard/PriorityQueueCard";
@@ -9,25 +9,32 @@ import { StudyVelocityCard } from "../components/ui/dashboard/StudyVelocityCard"
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import { TOUR_STEPS } from "@/tour/tourSteps";
+import type { CustomTourStep } from "@/tour/tourSteps";
 import { useEffect } from "react";
 
 
 export function Dashboard() {
   const { isLoaded, isSignedIn } = useAuth();
-
+  const navigate = useNavigate()
   useEffect(() => {
-    const dashboardSteps = TOUR_STEPS.filter((step) => step.page === "/dashboard")
+    if(!isLoaded) return 
     const driverObj = driver({
       showProgress: true,
       animate: true,
-      steps: dashboardSteps
+      steps: TOUR_STEPS as NonNullable<Parameters<typeof driver>[0]>["steps"],
+      onHighlightStarted: (element, step) => {
+        const tourStep = step as CustomTourStep
+        if(tourStep.page !== location.pathname){
+          navigate(`/${tourStep.page}`)
+        }
+      }
     })
     const timer = setTimeout(() => {
       driverObj.drive()
     }, 400);
 
     return () => clearTimeout(timer)
-  }, [])
+  }, [isLoaded])
   if (!isLoaded) {
     return <div className="min-h-screen bg-[#0b0b12]" />;
   }
