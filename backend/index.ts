@@ -73,6 +73,7 @@ const storage = multer.diskStorage({
 const upload = multer({storage: storage})
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
+
 app.get("/tasks/:userId", async(req, res) => {
   const {userId} = req.params
   try{
@@ -99,6 +100,13 @@ app.get("/session/:userId/:type/:fileId", async(req, res) => {
   const {userId, type, fileId} =  req.params
   const id = await pool.query("SELECT id FROM users WHERE clerk_user_id = $1", [userId])
   const result = await pool.query("SELECT * FROM study_sessions WHERE file_id = $1 AND mode = $2 AND user_id = $3", [fileId, type, id.rows[0].id])
+  res.json(result.rows)
+})
+
+app.get("/global/sessions/:userId", async(req, res) => {
+  const {userId} = req.params
+  const id = await pool.query("SELECT id FROM users WHERE clerk_user_id = $1", [userId])
+  const result = await pool.query("SELECT * FROM study_sessions WHERE user_id = $1", [id.rows[0].id])
   res.json(result.rows)
 })
 
