@@ -55,7 +55,7 @@ export function PriorityQueueCard() {
     fetchTasksData()
   }, [])
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#12121a] p-5">
+    <div id = "priority-queue" className="rounded-2xl border border-white/10 bg-[#12121a] p-5">
       <div className="flex items-start justify-between">
         <div>
           <h2 className="text-xs font-semibold tracking-wide text-zinc-400">
