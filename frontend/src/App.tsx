@@ -4,6 +4,7 @@ import { Intermission } from "./pages/Intermission";
 import { Calendar } from "./pages/Calendar";
 import { StudyHub } from "./pages/StudyHub";
 import { ReviewIntermission } from "./components/ui/studyhub/Reviewer/ReviewIntermission";
+import { History } from "./pages/History";
 
 export default function App(){
   return(
@@ -14,6 +15,7 @@ export default function App(){
         <Route path = "/calendar" element={<Calendar/>}/>
         <Route path = "/study-hub" element={<StudyHub/>}/>
         <Route path = "/study-hub/:type/:fileId" element={<ReviewIntermission/>}/>
+        <Route path = "/history" element={<History/>}/>
       </Routes>
     </BrowserRouter>
   )
