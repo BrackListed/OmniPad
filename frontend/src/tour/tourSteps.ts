@@ -32,6 +32,17 @@ export const TOUR_STEPS = [
     {
         page: "/calendar",
         element: "#add-task",
-        popover: {title: "6. Add Task", description: ""}
-    }
+        popover: {title: "6. Task Button", description: "This button allows you to add a task on the date you're currently on"}
+    },
+    {
+        page: "/calendar",
+        element: "#new-task",
+        popover: {title: "7. New Task", description: "I've set the details of the tasks for you. Try adding a new task!"}
+    },
+    {
+        page: "/calendar",
+        element: "#new-task-added",
+        popover: {title: "8. Create Task", description: "Click the create task button to add a task on the selected date"}
+    },
+
 ]

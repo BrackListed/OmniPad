@@ -37,7 +37,6 @@ export function NewTaskModal({ open, onClose, initialDate, onTaskCreated }: NewT
   const [details, setDetails] = useState("")
   const [date, setDate] = useState("")
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
-
   const [prevOpen, setPrevOpen] = useState(open)
   if (open !== prevOpen) {
     setPrevOpen(open)
@@ -60,6 +59,7 @@ export function NewTaskModal({ open, onClose, initialDate, onTaskCreated }: NewT
   }, [success])
   if (!open) return null;
 
+
   const displayDate = date
     ? new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
         month: "short",
@@ -74,6 +74,7 @@ export function NewTaskModal({ open, onClose, initialDate, onTaskCreated }: NewT
     >
       <div className="flex min-h-full items-center justify-center px-4 py-10">
       <div
+        id = "new-task"
         className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#12121a] p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
@@ -182,7 +183,7 @@ export function NewTaskModal({ open, onClose, initialDate, onTaskCreated }: NewT
           >
             Cancel
           </button>
-          <button onClick={() => saveTask(title, details, date, type, userId)} className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-500">
+          <button id="new-task-added" onClick={() => saveTask(title, details, date, type, userId)} className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-500">
             Create Task
           </button>
         </div>

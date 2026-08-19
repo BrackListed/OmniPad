@@ -8,6 +8,11 @@ import { NewTaskModal } from "../components/ui/dashboard/NewTaskModal";
 import { CalendarToolbar } from "../components/ui/calendar/CalendarToolbar";
 import { CalendarGrid } from "../components/ui/calendar/CalendarGrid";
 import { CalendarDetailsPanel } from "../components/ui/calendar/CalendarDetailsPanel";
+import { driver } from "driver.js";
+import 'driver.js/dist/driver.css';
+import { TOUR_STEPS } from "@/tour/tourSteps";
+import type { CustomTourStep } from "@/tour/tourSteps";
+import { useNavigate } from "react-router-dom";
 
 type CalendarView = "dayGridMonth" | "timeGridWeek" | "timeGridDay";
 
@@ -27,14 +32,14 @@ function todayStr() {
 }
 
 export function Calendar() {
-  const { userId, getToken } = useAuth();
+  const { userId, getToken, isLoaded } = useAuth();
   const calendarRef = useRef<FullCalendar>(null);
   const [tasks, setTasks] = useState<taskType[]>([]);
   const [selectedDate, setSelectedDate] = useState(todayStr());
   const [viewTitle, setViewTitle] = useState("");
   const [currentView, setCurrentView] = useState<CalendarView>("dayGridMonth");
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
-
+  const navigate = useNavigate()
   const fetchTasksData = async () => {
     if (!userId) return;
     const token = await getToken();
@@ -56,6 +61,33 @@ export function Calendar() {
     loadTasks();
   }, [userId]);
 
+  useEffect(() => {
+    if(!isLoaded) return
+    const driverObj = driver({
+      showProgress: true,
+      animate: true,
+      steps: TOUR_STEPS as NonNullable<Parameters<typeof driver>[0]>["steps"],
+      waitForElement: 3000,
+      onHighlightStarted: (element, step) => {
+        const tourStep = step as CustomTourStep
+        if(tourStep.page !== location.pathname){
+          navigate(tourStep.page)
+        }
+      },
+      onNextClick: (element, step) => {
+        const tourStep = step as CustomTourStep
+        if(tourStep.element === "#add-task"){
+          setIsNewTaskOpen(true)
+        }
+        driverObj.moveNext()
+      }
+    })
+    const startIndex = TOUR_STEPS.findIndex(step => step.page === location.pathname)
+    driverObj.drive(startIndex === -1 ? 0 : startIndex)
+
+    return () => driverObj.destroy()
+  }, [isLoaded])
+
   function changeView(view: CalendarView) {
     calendarRef.current?.getApi().changeView(view);
     setCurrentView(view);
@@ -76,7 +108,7 @@ export function Calendar() {
         />
 
         <div className="flex flex-1 overflow-hidden">
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto" id="calendar-main">
             <CalendarGrid
               ref={calendarRef}
               tasks={tasks}
@@ -91,6 +123,7 @@ export function Calendar() {
 
       <button
         onClick={() => setIsNewTaskOpen(true)}
+        id = "add-task"
         className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white shadow-2xl shadow-violet-600/30 hover:bg-violet-500"
       >
         <Plus className="h-4 w-4" strokeWidth={2.5} />

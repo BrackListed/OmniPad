@@ -17,24 +17,40 @@ export function Dashboard() {
   const { isLoaded, isSignedIn } = useAuth();
   const navigate = useNavigate()
   useEffect(() => {
-    if(!isLoaded) return 
     const driverObj = driver({
       showProgress: true,
       animate: true,
       steps: TOUR_STEPS as NonNullable<Parameters<typeof driver>[0]>["steps"],
+      waitForElement: 3000,
       onHighlightStarted: (element, step) => {
         const tourStep = step as CustomTourStep
         if(tourStep.page !== location.pathname){
-          navigate(`/${tourStep.page}`)
+          navigate(tourStep.page)
         }
+      },
+      onNextClick: (element, step) => {
+        const tourStep = step as CustomTourStep
+        const currentIndex = (TOUR_STEPS as CustomTourStep[]).indexOf(tourStep)
+        const nextStep = TOUR_STEPS[currentIndex + 1] as CustomTourStep | undefined
+        // Navigate immediately instead of letting driver.js spend
+        // waitForElement (3s) searching this page for an element that
+        // only exists on the next page.
+        if(nextStep && nextStep.page !== location.pathname){
+          navigate(nextStep.page)
+          return
+        }
+        driverObj.moveNext()
       }
     })
     const timer = setTimeout(() => {
-      driverObj.drive()
+      // Resume at the first step that belongs to this page, instead of
+      // always restarting from step 0 (which broke navigating between pages).
+      const startIndex = TOUR_STEPS.findIndex(step => step.page === location.pathname)
+      driverObj.drive(startIndex === -1 ? 0 : startIndex)
     }, 400);
 
-    return () => clearTimeout(timer)
-  }, [isLoaded])
+    return () => {clearTimeout(timer); driverObj.destroy()}
+  }, [])
   if (!isLoaded) {
     return <div className="min-h-screen bg-[#0b0b12]" />;
   }
