@@ -11,6 +11,7 @@ import {Queue} from "bullmq"
 import fs from "fs"
 import crypto from "crypto";
 import Groq from "groq-sdk";
+import { file } from "./db/schema.js"
 const app = express()
 const pool = new Pool({connectionString: process.env.DATABASE_URL})
 const db = drizzle(process.env.DATABASE_URL!)
@@ -254,6 +255,13 @@ app.patch("/study-session/save/:userId/:sessionId", async(req, res) => {
   }
 })
 
+
+app.patch("/complete/:fileId/:userId", async(req, res) => {
+  const {fileId, userId} = req.params
+  const id = await pool.query("SELECT id FROM users WHERE clerk_user_id = $1", [userId])
+  await pool.query("UPDATE file SET completed = $1 WHERE id = $2 AND user_id = $3", [true, fileId, id.rows[0].id])
+  res.json({message: "Successfully marked as complete"})
+})
 
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => console.log(`Server listening on port ${PORT}`))

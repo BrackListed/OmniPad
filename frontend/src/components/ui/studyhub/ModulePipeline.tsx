@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Brain,
   ChevronDown,
@@ -25,6 +25,7 @@ interface fileType {
   upload_date: Date
   user_id: string
   path: string
+  completed: boolean
 }
 
 export function ModulePipeline() {
@@ -43,15 +44,22 @@ export function ModulePipeline() {
     file.filename.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  const fetchFiles = useCallback(async () => {
+    if(!userId) return
+    const token = await getToken()
+    const result = await axios.get(`http://localhost:5000/file/${userId}`, {headers: {Authorization: `Bearer ${token}`}})
+    const files = result.data.files
+    const tempFiles = files.filter((file: fileType) => file.completed === false)
+    setFileList(tempFiles)
+  }, [getToken, userId])
+
   useEffect(() => {
-    if(!userId) return 
-    const fetchFiles = async() => {
-      const token = await getToken()
-      const result = await axios.get(`http://localhost:5000/file/${userId}`, {headers: {Authorization: `Bearer ${token}`}})
-      setFileList(result.data.files)
+    const loadFiles = async () => {
+      await fetchFiles()
     }
-    fetchFiles()
-  }, [userId])
+
+    void loadFiles()
+  }, [fetchFiles])
 
   useEffect(() => {
     if (status !== "processing") return;
@@ -209,8 +217,9 @@ export function ModulePipeline() {
         <button
           type="button"
           className="mt-3 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-300 transition-colors hover:bg-emerald-500/20"
+          onClick={() => completeFile(fileId, userId)}
         >
-          Mark file as complete
+          Mark File as Complete
         </button>
       )}
 
@@ -306,7 +315,7 @@ export function ModulePipeline() {
     if(!userId) return 
     const formData = new FormData()
     formData.append("file", file!)
-    const token = getToken()
+    const token = await getToken()
     const result = await axios.post(`http://localhost:5000/upload/file/${userId}`, formData, {headers: {Authorization: `Bearer ${token}`}})
     setFileId(result.data.id)
     setFilePath(result.data.path)
@@ -314,7 +323,7 @@ export function ModulePipeline() {
       prev.some((f) => f.id === result.data.id)
         ? prev
         : [
-            { id: result.data.id, filename: file!.name, upload_date: new Date(), user_id: userId ?? "", path: result.data.path },
+            { id: result.data.id, filename: file!.name, upload_date: new Date(), user_id: userId ?? "", path: result.data.path, completed: false },
             ...prev,
           ]
     )
@@ -332,5 +341,13 @@ export function ModulePipeline() {
     } finally {
       setGeneratingType(null)
     }
+  }
+
+  async function completeFile(fileId: string, userId: string | null | undefined){
+    await axios.patch(`http://localhost:5000/complete/${fileId}/${userId}`)
+    await fetchFiles()
+    setFileId("")
+    setFilePath("")
+    reset()
   }
 }
