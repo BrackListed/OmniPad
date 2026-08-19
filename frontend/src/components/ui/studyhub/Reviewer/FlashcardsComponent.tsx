@@ -32,6 +32,8 @@ export function FlashcardsComponent({type, fileId}: FlashcardsProps){
     const [showIntro, setShowIntro] = useState(true)
     const [currentCardIndex, setCurrentCardIndex] = useState(0)
     const [showBack, setShowBack] = useState(false)
+    const [sessionId, setSessionId] = useState("")
+    const [reshuffling, setReshuffling] = useState(false)
 
     useEffect(() => {
         if(!userId || !type || !fileId) return
@@ -42,6 +44,7 @@ export function FlashcardsComponent({type, fileId}: FlashcardsProps){
                 const result = await axios.get(`http://localhost:5000/session/${userId}/${type}/${fileId}`, {headers: {Authorization: `Bearer ${token}`}})
                 const payload = result?.data?.[0]?.payload ?? result?.data?.payload ?? result?.data
                 setSession(payload)
+                setSessionId(result.data[0].id)
             }
             catch(error){
                 console.error("Failed to fetch Flashcards session", error)
@@ -169,20 +172,34 @@ export function FlashcardsComponent({type, fileId}: FlashcardsProps){
                                     Previous
                                 </button>
 
-                                <button
-                                    onClick={() => {
-                                        if(currentCardIndex < totalCards - 1){
+                                {currentCardIndex >= totalCards - 1 ? (
+                                    <button
+                                        onClick={handleReshuffle}
+                                        disabled={reshuffling}
+                                        className="inline-flex items-center gap-2 rounded-xl border border-violet-400/35 bg-violet-500/20 px-4 py-2 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30 disabled:cursor-not-allowed disabled:opacity-40"
+                                    >
+                                        {reshuffling && <Loader2 className="h-4 w-4 animate-spin" />}
+                                        {reshuffling ? "Reshuffling..." : "Reshuffle?"}
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => {
                                             setCurrentCardIndex((previous) => previous + 1)
                                             setShowBack(false)
-                                        }
-                                    }}
-                                    disabled={currentCardIndex >= totalCards - 1}
-                                    className="inline-flex items-center gap-2 rounded-xl border border-violet-400/35 bg-violet-500/20 px-4 py-2 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30 disabled:cursor-not-allowed disabled:opacity-40"
-                                >
-                                    Next
-                                    <ArrowRight className="h-4 w-4" />
-                                </button>
+                                        }}
+                                        className="inline-flex items-center gap-2 rounded-xl border border-violet-400/35 bg-violet-500/20 px-4 py-2 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30"
+                                    >
+                                        Next
+                                        <ArrowRight className="h-4 w-4" />
+                                    </button>
+                                )}
                             </div>
+
+                            {currentCardIndex >= totalCards - 1 && (
+                                <p className="mt-3 text-center text-xs text-zinc-500">
+                                    Note: Reshuffle generates a new set of cards entirely.
+                                </p>
+                            )}
                         </>
                     ) : (
                         <p className="text-sm text-zinc-400">No flashcards found for this session yet.</p>
@@ -191,4 +208,17 @@ export function FlashcardsComponent({type, fileId}: FlashcardsProps){
             </main>
         </div>
     )
+
+    async function handleReshuffle(){
+        setReshuffling(true)
+        try{
+            const token = await getToken()
+            await axios.post(`http://localhost:5000/study-session/reshuffle/${userId}/${sessionId}`, {}, {headers: {Authorization: `Bearer ${token}`}})
+            window.location.reload()
+        } catch(error){
+            console.error("Failed to reshuffle study session", error)
+            alert("Failed to reshuffle study session, please try again.")
+            setReshuffling(false)
+        }
+    }
 }

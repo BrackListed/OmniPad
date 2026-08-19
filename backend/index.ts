@@ -166,6 +166,37 @@ app.post("/generate/session/:userId", async(req, res) => {
   return res.status(200).json({message: "Study session ready", fileId: fileId})
 })
 
+app.post("/study-session/reshuffle/:userId/:sessionId", async(req, res) => {
+  const {userId, sessionId} = req.params
+  const id = await pool.query("SELECT id FROM users WHERE clerk_user_id = $1", [userId])
+  const session = await pool.query("SELECT file_id, mode FROM study_sessions WHERE id = $1 AND user_id = $2", [sessionId, id.rows[0].id])
+  if(session.rows.length === 0){
+    return res.status(404).json({message: "Study session not found"})
+  }
+  const {file_id: fileId, mode} = session.rows[0]
+  const file = await pool.query("SELECT path FROM file WHERE id = $1", [fileId])
+  if(file.rows.length === 0){
+    return res.status(404).json({message: "Source file not found"})
+  }
+
+  await pool.query("DELETE FROM study_sessions WHERE id = $1 AND user_id = $2", [sessionId, id.rows[0].id])
+
+  const myQueue = new Queue('pdf-processing', {connection: redisOptions});
+  const job = await myQueue.add('extract-and-generate', {
+    fileId: fileId,
+    userId: id.rows[0].id,
+    type: mode,
+    filePath: file.rows[0].path
+  })
+  try {
+    await waitForJob(job)
+  } catch (err) {
+    console.error('Reshuffle failed:', err)
+    return res.status(500).json({message: "Failed to reshuffle study session"})
+  }
+  return res.status(200).json({message: "Study session reshuffled", fileId: fileId, type: mode})
+})
+
 app.post("/process-answer", async(req, res) => {
   const {answer, question, reference} = req.body
   const completions = await groq.chat.completions.create({
