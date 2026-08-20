@@ -1,5 +1,6 @@
 import type { DriveStep } from "driver.js";
 import axios from "axios";
+import { API_BASE_URL } from "@/lib/api";
 
 export interface CustomTourStep extends DriveStep {
   page: string;
@@ -28,7 +29,7 @@ export function triggerTourReplay(): void {
 export async function shouldAutoStartTour(userId: string, token: string | null): Promise<boolean> {
   if (!token) return false;
   try {
-    const result = await axios.get(`http://localhost:5000/users/${userId}`, {
+    const result = await axios.get(`${API_BASE_URL}/users/${userId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     return !result.data.has_seen_tour;
@@ -41,7 +42,7 @@ export async function shouldAutoStartTour(userId: string, token: string | null):
 export async function completeTour(userId: string, token: string | null): Promise<void> {
   if (!token) return;
   try {
-    await axios.patch(`http://localhost:5000/users/complete-tour/${userId}`, {}, {
+    await axios.patch(`${API_BASE_URL}/users/complete-tour/${userId}`, {}, {
       headers: { Authorization: `Bearer ${token}` },
     });
   } catch (error) {

@@ -2,6 +2,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import axios from "axios"
 import { useAuth } from "@clerk/react";
+import { API_BASE_URL } from "@/lib/api";
 
 interface taskType{
   id: string
@@ -47,7 +48,7 @@ export function PriorityQueueCard() {
     if(!userId) return 
     const fetchTasksData = async() => {
       const token = await getToken()
-      const result = await axios.get(`http://localhost:5000/tasks/${userId}`, {headers: {Authorization: `Bearer ${token}`}})
+      const result = await axios.get(`${API_BASE_URL}/tasks/${userId}`, {headers: {Authorization: `Bearer ${token}`}})
       setTasks(result.data.tasks)
       setIsLoading(result.data.isLoading)
       if(result.data.message) setMessage(result.data.message)

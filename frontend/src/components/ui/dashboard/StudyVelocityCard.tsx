@@ -8,6 +8,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { API_BASE_URL } from "@/lib/api";
 
 interface sessionType {
   id: string;
@@ -39,7 +40,7 @@ export function StudyVelocityCard() {
     if (!userId) return;
     const loadSessions = async () => {
       const token = await getToken();
-      const result = await axios.get(`http://localhost:5000/global/sessions/${userId}`, {
+      const result = await axios.get(`${API_BASE_URL}/global/sessions/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setSessions(result.data ?? []);

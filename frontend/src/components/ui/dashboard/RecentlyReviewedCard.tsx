@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import axios from "axios";
 import { useAuth } from "@clerk/react";
+import { API_BASE_URL } from "@/lib/api";
 
 interface fileType {
   id: string;
@@ -19,7 +20,7 @@ export function RecentlyReviewedCard() {
     if (!userId) return;
     const loadFiles = async () => {
       const token = await getToken();
-      const result = await axios.get(`http://localhost:5000/file/${userId}`, {
+      const result = await axios.get(`${API_BASE_URL}/file/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const completed = (result.data.files as fileType[]).filter((file) => file.completed);

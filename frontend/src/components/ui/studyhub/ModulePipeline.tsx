@@ -21,6 +21,7 @@ import "driver.js/dist/driver.css";
 import "@/tour/tour.css";
 import { TOUR_STEPS, tourPageMatches, markTourStepReached, studyHubResumeIndex, isTourActive, deactivateTour, completeTour } from "@/tour/tourSteps";
 import type { CustomTourStep } from "@/tour/tourSteps";
+import { API_BASE_URL } from "@/lib/api";
 
 type PipelineStatus = "idle" | "processing" | "complete";
 
@@ -121,7 +122,7 @@ export function ModulePipeline() {
   const fetchFiles = useCallback(async () => {
     if(!userId) return
     const token = await getToken()
-    const result = await axios.get(`http://localhost:5000/file/${userId}`, {headers: {Authorization: `Bearer ${token}`}})
+    const result = await axios.get(`${API_BASE_URL}/file/${userId}`, {headers: {Authorization: `Bearer ${token}`}})
     const files = result.data.files
     const tempFiles = files.filter((file: fileType) => file.completed === false)
     setFileList(tempFiles)
@@ -396,7 +397,7 @@ export function ModulePipeline() {
     const formData = new FormData()
     formData.append("file", file!)
     const token = await getToken()
-    const result = await axios.post(`http://localhost:5000/upload/file/${userId}`, formData, {headers: {Authorization: `Bearer ${token}`}})
+    const result = await axios.post(`${API_BASE_URL}/upload/file/${userId}`, formData, {headers: {Authorization: `Bearer ${token}`}})
     setFileId(result.data.id)
     setFilePath(result.data.path)
     lastSelectedFile = { id: result.data.id, path: result.data.path, filename: file!.name }
@@ -414,7 +415,7 @@ export function ModulePipeline() {
     setGeneratingType(type)
     try {
       const token = await getToken()
-      const result = await axios.post(`http://localhost:5000/generate/session/${userId}`, {type: type, fileId: id, path: path}, {headers: {Authorization: `Bearer ${token}`}})
+      const result = await axios.post(`${API_BASE_URL}/generate/session/${userId}`, {type: type, fileId: id, path: path}, {headers: {Authorization: `Bearer ${token}`}})
       navigate(`/study-hub/${type}/${result.data.fileId}`)
     } catch (err) {
       console.error("Failed to generate study session:", err)
@@ -425,7 +426,7 @@ export function ModulePipeline() {
   }
 
   async function completeFile(fileId: string, userId: string | null | undefined){
-    await axios.patch(`http://localhost:5000/complete/${fileId}/${userId}`)
+    await axios.patch(`${API_BASE_URL}/complete/${fileId}/${userId}`)
     await fetchFiles()
     setFileId("")
     setFilePath("")

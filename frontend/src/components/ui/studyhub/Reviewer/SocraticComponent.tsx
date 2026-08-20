@@ -11,6 +11,7 @@ import "driver.js/dist/driver.css"
 import "@/tour/tour.css"
 import { TOUR_STEPS, tourPageMatches, tourStartIndex, markTourStepReached, markModeVisited, isTourActive, deactivateTour, completeTour } from "@/tour/tourSteps"
 import type { CustomTourStep } from "@/tour/tourSteps"
+import { API_BASE_URL } from "@/lib/api"
 
 interface socraticProps{
     type: string | undefined
@@ -57,7 +58,7 @@ export function SocraticComponent({type, fileId}: socraticProps){
         const fetchSessionData = async() => {
             try{
                 const token = await getToken()
-                const result = await axios.get(`http://localhost:5000/session/${userId}/${type}/${fileId}`, {headers: {Authorization: `Bearer ${token}`}})
+                const result = await axios.get(`${API_BASE_URL}/session/${userId}/${type}/${fileId}`, {headers: {Authorization: `Bearer ${token}`}})
                 const payload = result?.data?.[0]?.payload ?? result?.data?.payload ?? result?.data
                 setSession(payload)
                 setSessionId(result.data[0].id)
@@ -400,13 +401,13 @@ export function SocraticComponent({type, fileId}: socraticProps){
     )
 
     async function processAnswer(answer: string, question: string | undefined, reference: string){
-        const result = await axios.post(`http://localhost:5000/process-answer`, {answer: answer, question: question, reference: reference})
+        const result = await axios.post(`${API_BASE_URL}/process-answer`, {answer: answer, question: question, reference: reference})
         return result.data
     }
 
     async function saveScore(score: number, wrong: number[], id: string, userId: string | null | undefined){
         const hasPassed = Math.round((score / totalQuestions) * 100) >= 80
         const token = await getToken()
-        await axios.patch(`http://localhost:5000/study-session/save/${userId}/${id}`, {score: score, wrong: wrong, passed: hasPassed}, {headers: {Authorization: `Bearer ${token}`}})
+        await axios.patch(`${API_BASE_URL}/study-session/save/${userId}/${id}`, {score: score, wrong: wrong, passed: hasPassed}, {headers: {Authorization: `Bearer ${token}`}})
     }
 }

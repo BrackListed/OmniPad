@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
 import axios from "axios";
 import { useAuth } from "@clerk/react";
 import { taskTypeColors } from "../calendar/task-colors";
+import { API_BASE_URL } from "@/lib/api";
 
 interface taskType {
   id: string;
@@ -56,7 +57,7 @@ export function CalendarPreviewCard() {
     if (!userId) return;
     const loadTasks = async () => {
       const token = await getToken();
-      const result = await axios.get(`http://localhost:5000/tasks/${userId}`, {
+      const result = await axios.get(`${API_BASE_URL}/tasks/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setTasks(result.data.tasks ?? []);

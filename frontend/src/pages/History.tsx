@@ -4,6 +4,7 @@ import { LeftSidebar } from "../components/ui/dashboard/LeftSidebar";
 import { useAuth } from "@clerk/react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "@/lib/api";
 
 type FileStatus = "Completed" | "In Progress";
 
@@ -44,12 +45,12 @@ export function History() {
     if(!userId) return
     const fetchFilesData = async() => {
         const token = await getToken()
-        const result = await axios.get(`http://localhost:5000/file/${userId}`, {headers: {Authorization: `Bearer ${token}`}})
+        const result = await axios.get(`${API_BASE_URL}/file/${userId}`, {headers: {Authorization: `Bearer ${token}`}})
         setFiles(result.data.files)
     }
     const fetchSessions = async() => {
         const token = await getToken()
-        const result = await axios.get(`http://localhost:5000/global/sessions/${userId}`, {headers: {Authorization: `Bearer ${token}`}})
+        const result = await axios.get(`${API_BASE_URL}/global/sessions/${userId}`, {headers: {Authorization: `Bearer ${token}`}})
         setSessions(result.data)
     }
     fetchFilesData()

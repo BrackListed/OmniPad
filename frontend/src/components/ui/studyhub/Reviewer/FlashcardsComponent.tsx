@@ -10,6 +10,7 @@ import "driver.js/dist/driver.css"
 import "@/tour/tour.css"
 import { TOUR_STEPS, tourPageMatches, tourStartIndex, markTourStepReached, markModeVisited, isTourActive, deactivateTour, completeTour } from "@/tour/tourSteps"
 import type { CustomTourStep } from "@/tour/tourSteps"
+import { API_BASE_URL } from "@/lib/api"
 
 interface FlashcardsProps{
     type: string | undefined
@@ -48,7 +49,7 @@ export function FlashcardsComponent({type, fileId}: FlashcardsProps){
         const fetchSessionData = async() => {
             try{
                 const token = await getToken()
-                const result = await axios.get(`http://localhost:5000/session/${userId}/${type}/${fileId}`, {headers: {Authorization: `Bearer ${token}`}})
+                const result = await axios.get(`${API_BASE_URL}/session/${userId}/${type}/${fileId}`, {headers: {Authorization: `Bearer ${token}`}})
                 const payload = result?.data?.[0]?.payload ?? result?.data?.payload ?? result?.data
                 setSession(payload)
                 setSessionId(result.data[0].id)
@@ -260,7 +261,7 @@ export function FlashcardsComponent({type, fileId}: FlashcardsProps){
         setReshuffling(true)
         try{
             const token = await getToken()
-            await axios.post(`http://localhost:5000/study-session/reshuffle/${userId}/${sessionId}`, {}, {headers: {Authorization: `Bearer ${token}`}})
+            await axios.post(`${API_BASE_URL}/study-session/reshuffle/${userId}/${sessionId}`, {}, {headers: {Authorization: `Bearer ${token}`}})
             window.location.reload()
         } catch(error){
             console.error("Failed to reshuffle study session", error)

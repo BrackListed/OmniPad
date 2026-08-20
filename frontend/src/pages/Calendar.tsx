@@ -14,6 +14,7 @@ import "@/tour/tour.css";
 import { TOUR_STEPS, tourPageMatches, tourStartIndex, markTourStepReached, isTourActive, deactivateTour, completeTour } from "@/tour/tourSteps";
 import type { CustomTourStep } from "@/tour/tourSteps";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "@/lib/api";
 
 type CalendarView = "dayGridMonth" | "timeGridWeek" | "timeGridDay";
 
@@ -45,7 +46,7 @@ export function Calendar() {
   const fetchTasksData = async () => {
     if (!userId) return;
     const token = await getToken();
-    const result = await axios.get(`http://localhost:5000/tasks/${userId}`, {
+    const result = await axios.get(`${API_BASE_URL}/tasks/${userId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     setTasks(result.data.tasks ?? []);
@@ -55,7 +56,7 @@ export function Calendar() {
     if (!userId) return;
     const loadTasks = async () => {
       const token = await getToken();
-      const result = await axios.get(`http://localhost:5000/tasks/${userId}`, {
+      const result = await axios.get(`${API_BASE_URL}/tasks/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setTasks(result.data.tasks ?? []);

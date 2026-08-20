@@ -7,6 +7,7 @@ import interactionPlugin, { type DateClickArg } from "@fullcalendar/interaction"
 import { useAuth } from "@clerk/react";
 import axios from "axios"
 import { Toast } from "../Toast";
+import { API_BASE_URL } from "@/lib/api";
 
 const calendarThemeVars = {
   "--fc-border-color": "rgba(255, 255, 255, 0.1)",
@@ -215,7 +216,7 @@ export function NewTaskModal({ open, onClose, initialDate, onTaskCreated, prefil
 
   async function saveTask(title: string, details: string, date: string, type: string, userId: string | null | undefined){
     const token = getToken() 
-    const result = await axios.post(`http://localhost:5000/add/tasks/${userId}`, {title: title, details: details, due: date, type: type}, {headers: {Authorization: `Bearer ${token}`}})
+    const result = await axios.post(`${API_BASE_URL}/add/tasks/${userId}`, {title: title, details: details, due: date, type: type}, {headers: {Authorization: `Bearer ${token}`}})
     setSuccess(result.data.status)
     setSuccessMessage(result.data.message)
     if (result.data.status) onTaskCreated?.()
