@@ -1,16 +1,18 @@
 import {Queue, Worker} from "bullmq"
+import IORedis from "ioredis"
+import 'dotenv/config'
 
-const redisOptions = {host: "localhost", port: 6379}
+const redisConnection = new IORedis(process.env.REDIS_URL, {maxRetriesPerRequest: null})
 
 
-const testQueue = new Queue("test-queue", {connection: redisOptions})
+const testQueue = new Queue("test-queue", {connection: redisConnection})
 const testWorker = new Worker(
     "test-queue",
     async(job) => {
         console.log("Worker picked up job id: ", job.id)
         console.log("Job data: ", job.data)
     },
-    {connection: redisOptions}
+    {connection: redisConnection}
 )
 
 testWorker.on("completed", (job) => {

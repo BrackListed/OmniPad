@@ -2,11 +2,12 @@ import Groq from "groq-sdk";
 import { PDFParse } from "pdf-parse";
 import {Pool} from "pg"
 import { Worker } from "bullmq";
+import IORedis from "ioredis"
 import fs from "fs"
 import 'dotenv/config'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const redisOptions = {host: "localhost", port: 6379, maxRetriesPerRequest: null}
+const redisConnection = new IORedis(process.env.REDIS_URL, {maxRetriesPerRequest: null})
 const pool = new Pool({connectionString: process.env.DATABASE_URL})
 
 function getPrompt(type){
@@ -135,7 +136,7 @@ const pdfWorker = new Worker(
             await pool.query("INSERT INTO study_sessions(user_id, file_id, mode, topic, score, passed, payload) VALUES($1, $2, $3, $4, $5, $6, $7)", [userId, fileId, formattedMode, topic, 0, false, JSON.stringify(payload)])
         }
     },
-    {connection: redisOptions}
+    {connection: redisConnection}
 )
 
 pdfWorker.on("failed", (job, err) => {

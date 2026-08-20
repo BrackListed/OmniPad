@@ -8,6 +8,7 @@ import { clerkMiddleware } from '@clerk/express'
 import multer from "multer"
 import path from "path"
 import {Queue} from "bullmq"
+import IORedis from "ioredis"
 import fs from "fs"
 import crypto from "crypto";
 import Groq from "groq-sdk";
@@ -49,7 +50,7 @@ app.post('/webhooks/clerk', express.raw({ type: 'application/json' }), async (re
 app.use(clerkMiddleware())
 app.use(express.json())
 
-const redisOptions = {host: "localhost", port: 6379, maxRetriesPerRequest: null}
+const redisConnection = new IORedis(process.env.REDIS_URL!, {maxRetriesPerRequest: null})
 
 async function waitForJob(job: Awaited<ReturnType<Queue['add']>>, timeoutMs = 60000, intervalMs = 300) {
   const start = Date.now()
@@ -166,7 +167,7 @@ app.post("/generate/session/:userId", async(req, res) => {
   if(existingSession.rows.length > 0){
     return res.status(200).json({message: "Study session already exists", fileId: fileId})
   }
-  const myQueue = new Queue('pdf-processing', {connection: redisOptions});
+  const myQueue = new Queue('pdf-processing', {connection: redisConnection});
   const job = await myQueue.add('extract-and-generate', {
     fileId: fileId,
     userId: id.rows[0].id,
@@ -197,7 +198,7 @@ app.post("/study-session/reshuffle/:userId/:sessionId", async(req, res) => {
 
   await pool.query("DELETE FROM study_sessions WHERE id = $1 AND user_id = $2", [sessionId, id.rows[0].id])
 
-  const myQueue = new Queue('pdf-processing', {connection: redisOptions});
+  const myQueue = new Queue('pdf-processing', {connection: redisConnection});
   const job = await myQueue.add('extract-and-generate', {
     fileId: fileId,
     userId: id.rows[0].id,
