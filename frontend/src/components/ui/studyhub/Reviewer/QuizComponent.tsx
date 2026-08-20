@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom"
 import { driver } from "driver.js"
 import "driver.js/dist/driver.css"
 import "@/tour/tour.css"
-import { TOUR_STEPS, tourPageMatches, tourStartIndex } from "@/tour/tourSteps"
+import { TOUR_STEPS, tourPageMatches, tourStartIndex, markTourStepReached, markModeVisited } from "@/tour/tourSteps"
 import type { CustomTourStep } from "@/tour/tourSteps"
 
 interface QuizProps{
@@ -87,6 +87,7 @@ export function QuizComponent({type, fileId}: QuizProps){
                 }
             },
             onNextClick: (element, step, opts) => {
+                markTourStepReached(opts.index)
                 const nextStep = opts.index !== undefined ? TOUR_STEPS[opts.index + 1] as CustomTourStep | undefined : undefined
                 if(nextStep && !tourPageMatches(nextStep.page, location.pathname)){
                     return
@@ -94,6 +95,7 @@ export function QuizComponent({type, fileId}: QuizProps){
                 driverObj.moveNext()
             }
         })
+        markModeVisited("Quiz")
         const startIndex = tourStartIndex(location.pathname)
         driverObj.drive(startIndex === -1 ? 0 : startIndex)
 

@@ -11,7 +11,7 @@ import { CalendarDetailsPanel } from "../components/ui/calendar/CalendarDetailsP
 import { driver } from "driver.js";
 import 'driver.js/dist/driver.css';
 import "@/tour/tour.css";
-import { TOUR_STEPS, tourPageMatches, tourStartIndex } from "@/tour/tourSteps";
+import { TOUR_STEPS, tourPageMatches, tourStartIndex, markTourStepReached } from "@/tour/tourSteps";
 import type { CustomTourStep } from "@/tour/tourSteps";
 import { useNavigate } from "react-router-dom";
 
@@ -89,6 +89,7 @@ export function Calendar() {
         }
       },
       onNextClick: (element, step, opts) => {
+        markTourStepReached(opts.index)
         const nextStep = opts.index !== undefined ? TOUR_STEPS[opts.index + 1] as CustomTourStep | undefined : undefined
         if(nextStep && !tourPageMatches(nextStep.page, location.pathname)){
           navigate(nextStep.page)

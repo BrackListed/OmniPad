@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom"
 import { driver } from "driver.js"
 import "driver.js/dist/driver.css"
 import "@/tour/tour.css"
-import { TOUR_STEPS, tourPageMatches, tourStartIndex } from "@/tour/tourSteps"
+import { TOUR_STEPS, tourPageMatches, tourStartIndex, markTourStepReached, markModeVisited } from "@/tour/tourSteps"
 import type { CustomTourStep } from "@/tour/tourSteps"
 
 interface FlashcardsProps{
@@ -78,8 +78,13 @@ export function FlashcardsComponent({type, fileId}: FlashcardsProps){
                 if(!tourPageMatches(tourStep.page, location.pathname)){
                     navigate(tourStep.page)
                 }
+            },
+            onNextClick: (element, step, opts) => {
+                markTourStepReached(opts.index)
+                driverObj.moveNext()
             }
         })
+        markModeVisited("Flashcards")
         const startIndex = tourStartIndex(location.pathname)
         driverObj.drive(startIndex === -1 ? 0 : startIndex)
 

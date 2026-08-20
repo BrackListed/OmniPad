@@ -11,8 +11,46 @@ export function tourPageMatches(stepPage: string, pathname: string): boolean {
   return pathname === stepPage;
 }
 
+let furthestStepReached = -1;
+
+export function markTourStepReached(index: number | undefined): void {
+  if (index !== undefined && index > furthestStepReached) {
+    furthestStepReached = index;
+  }
+}
+
 export function tourStartIndex(pathname: string): number {
+  const afterProgress = TOUR_STEPS.findIndex(
+    (step, i) => i > furthestStepReached && tourPageMatches(step.page, pathname)
+  );
+  if (afterProgress !== -1) return afterProgress;
   return TOUR_STEPS.findIndex((step) => tourPageMatches(step.page, pathname));
+}
+
+const visitedModes = new Set<string>();
+
+export function markModeVisited(mode: string): void {
+  visitedModes.add(mode);
+}
+
+export function studyHubResumeIndex(): number {
+  const modeOrder = ["Feynman", "Socratic", "Quiz", "Flashcards"];
+  const cardElementByMode: Record<string, string> = {
+    Feynman: "#feynman-card",
+    Socratic: "#socratic-card",
+    Quiz: "#quiz-card",
+    Flashcards: "#flashcards-card",
+  };
+  const nextUnvisited = modeOrder.find((mode) => !visitedModes.has(mode));
+  if (nextUnvisited === undefined) {
+    return TOUR_STEPS.findIndex((step) => step.element === "#flashcards-card");
+  }
+  if (nextUnvisited === "Feynman") {
+    return tourStartIndex("/study-hub");
+  }
+  return TOUR_STEPS.findIndex(
+    (step) => step.page === "/study-hub" && step.element === cardElementByMode[nextUnvisited]
+  );
 }
 
 export const TOUR_STEPS: CustomTourStep[] = [
@@ -180,7 +218,7 @@ export const TOUR_STEPS: CustomTourStep[] = [
   {
     page: "/study-hub/Feynman/*",
     element: "#critique-modal",
-    waitForElement: 15000,
+    waitForElement: 6000,
     skipMissingElement: true,
     popover: {
       title: "16. Real Feedback",
@@ -206,8 +244,8 @@ export const TOUR_STEPS: CustomTourStep[] = [
     element: "#socratic-card",
     advanceOnClick: true,
     popover: {
-      title: "18. Reselect Your File",
-      description: "Pick the same file again, then click into Socratic.",
+      title: "18. Now Try Socratic",
+      description: "Same file, different mode. Click in.",
       side: "right",
       align: "center",
       showButtons: ["previous", "close"],
@@ -240,8 +278,8 @@ export const TOUR_STEPS: CustomTourStep[] = [
     element: "#quiz-card",
     advanceOnClick: true,
     popover: {
-      title: "21. Reselect Your File",
-      description: "Pick the same file again, then click into Quiz.",
+      title: "21. Now Try Quiz",
+      description: "Same file, different mode. Click in.",
       side: "right",
       align: "center",
       showButtons: ["previous", "close"],
@@ -288,8 +326,8 @@ export const TOUR_STEPS: CustomTourStep[] = [
     element: "#flashcards-card",
     advanceOnClick: true,
     popover: {
-      title: "25. Reselect Your File",
-      description: "Pick the same file again, then click into Flashcards.",
+      title: "25. Now Try Flashcards",
+      description: "Same file, different mode. Click in.",
       side: "right",
       align: "center",
       showButtons: ["previous", "close"],

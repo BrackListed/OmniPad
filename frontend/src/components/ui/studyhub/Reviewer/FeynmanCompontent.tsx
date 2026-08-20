@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom"
 import { driver } from "driver.js"
 import "driver.js/dist/driver.css"
 import "@/tour/tour.css"
-import { TOUR_STEPS, tourPageMatches, tourStartIndex } from "@/tour/tourSteps"
+import { TOUR_STEPS, tourPageMatches, tourStartIndex, markTourStepReached, markModeVisited } from "@/tour/tourSteps"
 import type { CustomTourStep } from "@/tour/tourSteps"
 
 interface FeynmanProps{
@@ -92,6 +92,7 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
                 }
             },
             onNextClick: (element, step, opts) => {
+                markTourStepReached(opts.index)
                 const nextStep = opts.index !== undefined ? TOUR_STEPS[opts.index + 1] as CustomTourStep | undefined : undefined
                 if(nextStep && !tourPageMatches(nextStep.page, location.pathname)){
                     return
@@ -100,6 +101,7 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
             }
         })
         driverRef.current = driverObj
+        markModeVisited("Feynman")
         const startIndex = tourStartIndex(location.pathname)
         driverObj.drive(startIndex === -1 ? 0 : startIndex)
 
@@ -108,11 +110,23 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
 
     useEffect(() => {
         if(answer.trim().length === 0) return
-        const activeStep = driverRef.current?.getActiveStep() as CustomTourStep | undefined
-        if(activeStep?.element === "#feynman-question"){
-            driverRef.current?.moveNext()
-        }
+        const timer = setTimeout(() => {
+            const activeStep = driverRef.current?.getActiveStep() as CustomTourStep | undefined
+            if(activeStep?.element === "#feynman-question"){
+                driverRef.current?.moveNext()
+            }
+        }, 1800)
+        return () => clearTimeout(timer)
     }, [answer])
+
+    useEffect(() => {
+        if(currentQuestionIndex === 0) return
+        const activeStep = driverRef.current?.getActiveStep() as CustomTourStep | undefined
+        if(activeStep?.element === "#feynman-submit" || activeStep?.element === "#critique-modal"){
+            const navIndex = TOUR_STEPS.findIndex((s) => s.page === "/study-hub/Feynman/*" && s.element === "#nav-study-hub")
+            if(navIndex !== -1) driverRef.current?.moveTo(navIndex)
+        }
+    }, [currentQuestionIndex])
 
     if(loading){
         return(

@@ -19,7 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
 import "@/tour/tour.css";
-import { TOUR_STEPS, tourPageMatches, tourStartIndex } from "@/tour/tourSteps";
+import { TOUR_STEPS, tourPageMatches, markTourStepReached, studyHubResumeIndex } from "@/tour/tourSteps";
 import type { CustomTourStep } from "@/tour/tourSteps";
 
 type PipelineStatus = "idle" | "processing" | "complete";
@@ -32,6 +32,8 @@ interface fileType {
   path: string
   completed: boolean
 }
+
+let lastSelectedFile: { id: string; path: string; filename: string } | null = null
 
 export function ModulePipeline() {
   const [fileName, setFileName] = useState<string | null>(null);
@@ -48,6 +50,8 @@ export function ModulePipeline() {
   const filteredFiles = fileList.filter((file) =>
     file.filename.toLowerCase().includes(searchQuery.toLowerCase())
   )
+  const driverRef = useRef<ReturnType<typeof driver> | null>(null)
+  const pendingCardIndexRef = useRef<number | null>(null)
 
   useEffect(() => {
     const driverObj = driver({
@@ -65,6 +69,7 @@ export function ModulePipeline() {
         }
       },
       onNextClick: (element, step, opts) => {
+        markTourStepReached(opts.index)
         const nextStep = opts.index !== undefined ? TOUR_STEPS[opts.index + 1] as CustomTourStep | undefined : undefined
         if(nextStep && !tourPageMatches(nextStep.page, location.pathname)){
           return
@@ -72,10 +77,34 @@ export function ModulePipeline() {
         driverObj.moveNext()
       }
     })
-    const startIndex = tourStartIndex(location.pathname)
-    driverObj.drive(startIndex === -1 ? 0 : startIndex)
+    driverRef.current = driverObj
+    const naturalStart = studyHubResumeIndex()
+    let startIndex = naturalStart === -1 ? 0 : naturalStart
+    const naturalStep = TOUR_STEPS[startIndex] as CustomTourStep | undefined
+    const cardIds = ["#feynman-card", "#socratic-card", "#quiz-card", "#flashcards-card"]
+    if(naturalStep && cardIds.includes(naturalStep.element as string) && status !== "complete"){
+      pendingCardIndexRef.current = startIndex
+      const fileStepIndex = TOUR_STEPS.findIndex((s) => s.element === "#file-processing")
+      startIndex = fileStepIndex === -1 ? startIndex : fileStepIndex
+    }
+    driverObj.drive(startIndex)
 
-    return () => driverObj.destroy()
+    return () => { driverObj.destroy(); driverRef.current = null }
+  }, [])
+
+  useEffect(() => {
+    if(status !== "complete") return
+    if(pendingCardIndexRef.current === null) return
+    driverRef.current?.moveTo(pendingCardIndexRef.current)
+    pendingCardIndexRef.current = null
+  }, [status])
+
+  useEffect(() => {
+    if(lastSelectedFile && status === "idle"){
+      setFileId(lastSelectedFile.id)
+      setFilePath(lastSelectedFile.path)
+      startProcessing(lastSelectedFile.filename)
+    }
   }, [])
 
   const fetchFiles = useCallback(async () => {
@@ -348,16 +377,18 @@ export function ModulePipeline() {
     setFileId(file.id)
     setFilePath(file.path)
     startProcessing(file.filename)
+    lastSelectedFile = { id: file.id, path: file.path, filename: file.filename }
   }
 
   async function uploadFile(file: File | undefined){
-    if(!userId) return 
+    if(!userId) return
     const formData = new FormData()
     formData.append("file", file!)
     const token = await getToken()
     const result = await axios.post(`http://localhost:5000/upload/file/${userId}`, formData, {headers: {Authorization: `Bearer ${token}`}})
     setFileId(result.data.id)
     setFilePath(result.data.path)
+    lastSelectedFile = { id: result.data.id, path: result.data.path, filename: file!.name }
     setFileList((prev) =>
       prev.some((f) => f.id === result.data.id)
         ? prev
