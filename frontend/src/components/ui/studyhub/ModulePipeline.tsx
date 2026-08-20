@@ -16,6 +16,11 @@ import { FeatureCard } from "./FeatureCard";
 import axios from "axios";
 import { useAuth } from "@clerk/react";
 import { useNavigate } from "react-router-dom";
+import { driver } from "driver.js";
+import "driver.js/dist/driver.css";
+import "@/tour/tour.css";
+import { TOUR_STEPS, tourPageMatches, tourStartIndex } from "@/tour/tourSteps";
+import type { CustomTourStep } from "@/tour/tourSteps";
 
 type PipelineStatus = "idle" | "processing" | "complete";
 
@@ -43,6 +48,35 @@ export function ModulePipeline() {
   const filteredFiles = fileList.filter((file) =>
     file.filename.toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  useEffect(() => {
+    const driverObj = driver({
+      showProgress: true,
+      animate: true,
+      popoverClass: "omnipad-tour",
+      overlayColor: "#0b0b12",
+      overlayOpacity: 0.75,
+      steps: TOUR_STEPS as NonNullable<Parameters<typeof driver>[0]>["steps"],
+      waitForElement: 3000,
+      onHighlightStarted: (element, step) => {
+        const tourStep = step as CustomTourStep
+        if(!tourStep.page.endsWith("/*") && !tourPageMatches(tourStep.page, location.pathname)){
+          navigate(tourStep.page)
+        }
+      },
+      onNextClick: (element, step, opts) => {
+        const nextStep = opts.index !== undefined ? TOUR_STEPS[opts.index + 1] as CustomTourStep | undefined : undefined
+        if(nextStep && !tourPageMatches(nextStep.page, location.pathname)){
+          return
+        }
+        driverObj.moveNext()
+      }
+    })
+    const startIndex = tourStartIndex(location.pathname)
+    driverObj.drive(startIndex === -1 ? 0 : startIndex)
+
+    return () => driverObj.destroy()
+  }, [])
 
   const fetchFiles = useCallback(async () => {
     if(!userId) return
@@ -81,7 +115,7 @@ export function ModulePipeline() {
 
   return (
     <div className="flex flex-col items-center">
-      <div className="flex w-full max-w-3xl flex-col items-stretch gap-4 sm:flex-row sm:justify-center">
+      <div id="module-intake" className="flex w-full max-w-3xl flex-col items-stretch gap-4 sm:flex-row sm:justify-center">
         <input
           ref={fileInputRef}
           type="file"
@@ -180,6 +214,7 @@ export function ModulePipeline() {
       </div>
 
       <div
+        id="file-processing"
         className={`flex w-full max-w-md items-center gap-3 rounded-2xl border p-4 transition-colors ${
           status === "complete"
             ? "border-emerald-500/30 bg-emerald-500/5"
@@ -230,10 +265,11 @@ export function ModulePipeline() {
 
       <div className="relative w-full">
         <div className="absolute left-[12.5%] right-[12.5%] top-0 hidden h-px bg-white/15 sm:block" />
-        <div className="grid grid-cols-1 gap-4 pt-4 sm:grid-cols-4">
+        <div id="mode-cards" className="grid grid-cols-1 gap-4 pt-4 sm:grid-cols-4">
           <div className="flex flex-col items-center gap-2">
             <div className="hidden h-4 w-px bg-white/15 sm:block" />
             <FeatureCard
+              id="feynman-card"
               icon={Brain}
               accent="orange"
               title="FEYNMAN REVIEWER"
@@ -250,6 +286,7 @@ export function ModulePipeline() {
           <div className="flex flex-col items-center gap-2">
             <div className="hidden h-4 w-px bg-white/15 sm:block" />
             <FeatureCard
+              id="socratic-card"
               icon={Landmark}
               accent="sky"
               title="SOCRATIC DIALOGUE"
@@ -267,6 +304,7 @@ export function ModulePipeline() {
           <div className="flex flex-col items-center gap-2">
             <div className="hidden h-4 w-px bg-white/15 sm:block" />
             <FeatureCard
+              id="quiz-card"
               icon={Target}
               accent="violet"
               title="ADAPTIVE QUIZ GEN"
@@ -284,6 +322,7 @@ export function ModulePipeline() {
           <div className="flex flex-col items-center gap-2">
             <div className="hidden h-4 w-px bg-white/15 sm:block" />
             <FeatureCard
+              id="flashcards-card"
               icon={SquareStack}
               accent="emerald"
               title="FLASHCARDS"

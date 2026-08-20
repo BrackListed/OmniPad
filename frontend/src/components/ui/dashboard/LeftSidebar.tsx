@@ -27,7 +27,7 @@ export function LeftSidebar() {
             <Calendar className="h-4.5 w-4.5" strokeWidth={2} />
             Calendar
           </NavLink>
-          <NavLink to="/study-hub" className={linkClass}>
+          <NavLink id="nav-study-hub" to="/study-hub" className={linkClass}>
             <BookOpen className="h-4.5 w-4.5" strokeWidth={2} />
             Study Hub
           </NavLink>

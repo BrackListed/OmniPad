@@ -7,7 +7,8 @@ export const users = pgTable("users", {
     clerk_user_id: text("clerk_user_id").notNull().unique(),
     email: text("email").default("").unique(),
     username: text("username").notNull(),
-    created_at: timestamp("created_at",{withTimezone:true}).defaultNow().notNull()
+    created_at: timestamp("created_at",{withTimezone:true}).defaultNow().notNull(),
+    has_seenn_tour: boolean("has_seen_tour").default(false)
 })
 
 

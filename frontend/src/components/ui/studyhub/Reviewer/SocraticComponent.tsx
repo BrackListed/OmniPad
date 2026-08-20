@@ -6,6 +6,11 @@ import { LeftSidebar } from "../../dashboard/LeftSidebar"
 import { MathText } from "./MathText"
 import { Dictaphone } from "./Dictaphone"
 import { useNavigate } from "react-router-dom"
+import { driver } from "driver.js"
+import "driver.js/dist/driver.css"
+import "@/tour/tour.css"
+import { TOUR_STEPS, tourPageMatches, tourStartIndex } from "@/tour/tourSteps"
+import type { CustomTourStep } from "@/tour/tourSteps"
 
 interface socraticProps{
     type: string | undefined
@@ -71,6 +76,35 @@ export function SocraticComponent({type, fileId}: socraticProps){
 
         fetchSessionData()
     }, [userId, type, fileId, getToken])
+
+    useEffect(() => {
+        const driverObj = driver({
+            showProgress: true,
+            animate: true,
+            popoverClass: "omnipad-tour",
+            overlayColor: "#0b0b12",
+            overlayOpacity: 0.75,
+            steps: TOUR_STEPS as NonNullable<Parameters<typeof driver>[0]>["steps"],
+            waitForElement: 3000,
+            onHighlightStarted: (element, step) => {
+                const tourStep = step as CustomTourStep
+                if(!tourStep.page.endsWith("/*") && !tourPageMatches(tourStep.page, location.pathname)){
+                    navigate(tourStep.page)
+                }
+            },
+            onNextClick: (element, step, opts) => {
+                const nextStep = opts.index !== undefined ? TOUR_STEPS[opts.index + 1] as CustomTourStep | undefined : undefined
+                if(nextStep && !tourPageMatches(nextStep.page, location.pathname)){
+                    return
+                }
+                driverObj.moveNext()
+            }
+        })
+        const startIndex = tourStartIndex(location.pathname)
+        driverObj.drive(startIndex === -1 ? 0 : startIndex)
+
+        return () => driverObj.destroy()
+    }, [])
 
     if(loading){
         return(
@@ -258,7 +292,7 @@ export function SocraticComponent({type, fileId}: socraticProps){
                     </p>
                 </section>
 
-                <section className="mt-6 rounded-3xl border border-violet-500/20 bg-[#141420]/95 p-6 shadow-[0_28px_60px_-40px_rgba(46,16,101,0.8)]">
+                <section id="socratic-question" className="mt-6 rounded-3xl border border-violet-500/20 bg-[#141420]/95 p-6 shadow-[0_28px_60px_-40px_rgba(46,16,101,0.8)]">
                     {currentQuestion ? (
                         <>
                             <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">{currentQuestion.concept}</p>

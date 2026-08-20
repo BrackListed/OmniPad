@@ -263,5 +263,12 @@ app.patch("/complete/:fileId/:userId", async(req, res) => {
   res.json({message: "Successfully marked as complete"})
 })
 
+app.patch("/users/complete-tour/:userId", async(req, res) => {
+  const {userId} = req.params
+  const id = await pool.query("SELECT id FROM users WHERE clerk_user_id = $1", [userId])
+  await pool.query("UPDATE users SET has_seen_tour = $1 WHERE user_id = $2", [true, id.rows[0].id])
+  res.json({message: "Tour completed"})
+})
+
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => console.log(`Server listening on port ${PORT}`))

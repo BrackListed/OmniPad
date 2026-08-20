@@ -33,6 +33,7 @@ const accentStyles = {
 } as const;
 
 type FeatureCardProps = {
+  id?: string;
   icon: LucideIcon;
   accent: keyof typeof accentStyles;
   title: string;
@@ -44,6 +45,7 @@ type FeatureCardProps = {
 };
 
 export function FeatureCard({
+  id,
   icon: Icon,
   accent,
   title,
@@ -57,6 +59,7 @@ export function FeatureCard({
 
   return (
     <div
+      id={id}
       className={`flex flex-col rounded-2xl border bg-[#12121a] p-5 transition-opacity ${style.border} ${
         locked && !loading ? "opacity-50" : "opacity-100"
       }`}

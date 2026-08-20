@@ -1,0 +1,71 @@
+.omnipad-tour.driver-popover {
+  background-color: #141420;
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  border-radius: 1rem;
+  padding: 20px;
+  min-width: 280px;
+  max-width: 340px;
+  box-shadow: 0 28px 60px -40px rgba(46, 16, 101, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.omnipad-tour .driver-popover-title {
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.omnipad-tour .driver-popover-description {
+  color: #d4d4d8;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.omnipad-tour .driver-popover-progress-text {
+  color: #71717a;
+  font-size: 12px;
+}
+
+.omnipad-tour .driver-popover-footer-btn {
+  background-color: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  color: #ddd6fe;
+  border-radius: 0.6rem;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background-color 0.15s;
+}
+
+.omnipad-tour .driver-popover-footer-btn:hover,
+.omnipad-tour .driver-popover-footer-btn:focus {
+  background-color: rgba(139, 92, 246, 0.3);
+}
+
+.omnipad-tour .driver-popover-footer .driver-popover-btn-disabled {
+  opacity: 0.35;
+}
+
+.omnipad-tour .driver-popover-close-btn {
+  color: #71717a;
+}
+
+.omnipad-tour .driver-popover-close-btn:hover,
+.omnipad-tour .driver-popover-close-btn:focus {
+  color: #ffffff;
+}
+
+.omnipad-tour .driver-popover-arrow-side-left {
+  border-left-color: #141420;
+}
+
+.omnipad-tour .driver-popover-arrow-side-right {
+  border-right-color: #141420;
+}
+
+.omnipad-tour .driver-popover-arrow-side-top {
+  border-top-color: #141420;
+}
+
+.omnipad-tour .driver-popover-arrow-side-bottom {
+  border-bottom-color: #141420;
+}

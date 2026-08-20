@@ -6,6 +6,11 @@ import { LeftSidebar } from "../../dashboard/LeftSidebar"
 import { MathText } from "./MathText"
 import { Dictaphone } from "./Dictaphone"
 import { useNavigate } from "react-router-dom"
+import { driver } from "driver.js"
+import "driver.js/dist/driver.css"
+import "@/tour/tour.css"
+import { TOUR_STEPS, tourPageMatches, tourStartIndex } from "@/tour/tourSteps"
+import type { CustomTourStep } from "@/tour/tourSteps"
 
 interface FeynmanProps{
     type: string | undefined
@@ -42,6 +47,7 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
     const [attemptedTab, setAttemptedTab] = useState<"summary" | "wrong">("summary")
     const navigate = useNavigate()
     const hasFetchedRef = useRef(false)
+    const driverRef = useRef<ReturnType<typeof driver> | null>(null)
     useEffect(() => {
         if(!userId || !type || !fileId) return
         if(hasFetchedRef.current) return
@@ -69,6 +75,44 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
 
         fetchSessionData()
     }, [userId, type, fileId, getToken])
+
+    useEffect(() => {
+        const driverObj = driver({
+            showProgress: true,
+            animate: true,
+            popoverClass: "omnipad-tour",
+            overlayColor: "#0b0b12",
+            overlayOpacity: 0.75,
+            steps: TOUR_STEPS as NonNullable<Parameters<typeof driver>[0]>["steps"],
+            waitForElement: 3000,
+            onHighlightStarted: (element, step) => {
+                const tourStep = step as CustomTourStep
+                if(!tourStep.page.endsWith("/*") && !tourPageMatches(tourStep.page, location.pathname)){
+                    navigate(tourStep.page)
+                }
+            },
+            onNextClick: (element, step, opts) => {
+                const nextStep = opts.index !== undefined ? TOUR_STEPS[opts.index + 1] as CustomTourStep | undefined : undefined
+                if(nextStep && !tourPageMatches(nextStep.page, location.pathname)){
+                    return
+                }
+                driverObj.moveNext()
+            }
+        })
+        driverRef.current = driverObj
+        const startIndex = tourStartIndex(location.pathname)
+        driverObj.drive(startIndex === -1 ? 0 : startIndex)
+
+        return () => { driverObj.destroy(); driverRef.current = null }
+    }, [])
+
+    useEffect(() => {
+        if(answer.trim().length === 0) return
+        const activeStep = driverRef.current?.getActiveStep() as CustomTourStep | undefined
+        if(activeStep?.element === "#feynman-question"){
+            driverRef.current?.moveNext()
+        }
+    }, [answer])
 
     if(loading){
         return(
@@ -256,7 +300,7 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
                     </p>
                 </section>
 
-                <section className="mt-6 rounded-3xl border border-violet-500/20 bg-[#141420]/95 p-6 shadow-[0_28px_60px_-40px_rgba(46,16,101,0.8)]">
+                <section id="feynman-question" className="mt-6 rounded-3xl border border-violet-500/20 bg-[#141420]/95 p-6 shadow-[0_28px_60px_-40px_rgba(46,16,101,0.8)]">
                     {currentQuestion ? (
                         <>
                             <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">{currentQuestion.concept}</p>
@@ -275,6 +319,7 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
                             {hasAnswer && (
                                 <div className="mt-6 flex items-center justify-end">
                                     <button
+                                        id="feynman-submit"
                                         onClick={async() => {
                                             const result = await processAnswer(answer, currentQuestion.question, currentQuestion.referenceAnswer)
                                             if(result.correct){
@@ -306,7 +351,7 @@ export function FeynmanComponent({type, fileId}: FeynmanProps){
 
             {wrongExplanation !== null && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-                    <div className="w-full max-w-md rounded-3xl border border-red-400/30 bg-[#141420] p-6 shadow-[0_28px_60px_-40px_rgba(239,68,68,0.5)]">
+                    <div id="critique-modal" className="w-full max-w-md rounded-3xl border border-red-400/30 bg-[#141420] p-6 shadow-[0_28px_60px_-40px_rgba(239,68,68,0.5)]">
                         <p className="text-xs uppercase tracking-[0.18em] text-red-300">Not quite</p>
                         <h3 className="mt-2 text-xl font-semibold text-white">Here's why</h3>
                         <p className="mt-3 text-sm leading-relaxed text-zinc-300">{wrongExplanation}</p>

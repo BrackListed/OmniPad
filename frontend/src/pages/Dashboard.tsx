@@ -8,7 +8,8 @@ import { QuickJumpCard } from "../components/ui/dashboard/QuickJumpCard";
 import { StudyVelocityCard } from "../components/ui/dashboard/StudyVelocityCard";
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
-import { TOUR_STEPS } from "@/tour/tourSteps";
+import "@/tour/tour.css";
+import { TOUR_STEPS, tourPageMatches, tourStartIndex } from "@/tour/tourSteps";
 import type { CustomTourStep } from "@/tour/tourSteps";
 import { useEffect } from "react";
 
@@ -20,36 +21,30 @@ export function Dashboard() {
     const driverObj = driver({
       showProgress: true,
       animate: true,
+      popoverClass: "omnipad-tour",
+      overlayColor: "#0b0b12",
+      overlayOpacity: 0.75,
       steps: TOUR_STEPS as NonNullable<Parameters<typeof driver>[0]>["steps"],
       waitForElement: 3000,
       onHighlightStarted: (element, step) => {
         const tourStep = step as CustomTourStep
-        if(tourStep.page !== location.pathname){
+        if(!tourPageMatches(tourStep.page, location.pathname)){
           navigate(tourStep.page)
         }
       },
-      onNextClick: (element, step) => {
-        const tourStep = step as CustomTourStep
-        const currentIndex = (TOUR_STEPS as CustomTourStep[]).indexOf(tourStep)
-        const nextStep = TOUR_STEPS[currentIndex + 1] as CustomTourStep | undefined
-        // Navigate immediately instead of letting driver.js spend
-        // waitForElement (3s) searching this page for an element that
-        // only exists on the next page.
-        if(nextStep && nextStep.page !== location.pathname){
+      onNextClick: (element, step, opts) => {
+        const nextStep = opts.index !== undefined ? TOUR_STEPS[opts.index + 1] as CustomTourStep | undefined : undefined
+        if(nextStep && !tourPageMatches(nextStep.page, location.pathname)){
           navigate(nextStep.page)
           return
         }
         driverObj.moveNext()
       }
     })
-    const timer = setTimeout(() => {
-      // Resume at the first step that belongs to this page, instead of
-      // always restarting from step 0 (which broke navigating between pages).
-      const startIndex = TOUR_STEPS.findIndex(step => step.page === location.pathname)
-      driverObj.drive(startIndex === -1 ? 0 : startIndex)
-    }, 400);
+    const startIndex = tourStartIndex(location.pathname)
+    driverObj.drive(startIndex === -1 ? 0 : startIndex)
 
-    return () => {clearTimeout(timer); driverObj.destroy()}
+    return () => driverObj.destroy()
   }, [])
   if (!isLoaded) {
     return <div className="min-h-screen bg-[#0b0b12]" />;

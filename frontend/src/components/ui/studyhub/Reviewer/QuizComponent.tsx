@@ -4,6 +4,12 @@ import { useEffect, useState } from "react"
 import { ArrowRight, Loader2 } from "lucide-react"
 import { LeftSidebar } from "../../dashboard/LeftSidebar"
 import { MathText } from "./MathText"
+import { useNavigate } from "react-router-dom"
+import { driver } from "driver.js"
+import "driver.js/dist/driver.css"
+import "@/tour/tour.css"
+import { TOUR_STEPS, tourPageMatches, tourStartIndex } from "@/tour/tourSteps"
+import type { CustomTourStep } from "@/tour/tourSteps"
 
 interface QuizProps{
     type: string | undefined
@@ -29,6 +35,7 @@ interface payloadType{
 
 export function QuizComponent({type, fileId}: QuizProps){
     const {userId, getToken} = useAuth()
+    const navigate = useNavigate()
     const [session, setSession] = useState<payloadType | null>(null)
     const [loading, setLoading] = useState(true)
     const [showIntro, setShowIntro] = useState(true)
@@ -63,6 +70,35 @@ export function QuizComponent({type, fileId}: QuizProps){
 
         fetchSessionData()
     }, [userId, type, fileId, getToken])
+
+    useEffect(() => {
+        const driverObj = driver({
+            showProgress: true,
+            animate: true,
+            popoverClass: "omnipad-tour",
+            overlayColor: "#0b0b12",
+            overlayOpacity: 0.75,
+            steps: TOUR_STEPS as NonNullable<Parameters<typeof driver>[0]>["steps"],
+            waitForElement: 3000,
+            onHighlightStarted: (element, step) => {
+                const tourStep = step as CustomTourStep
+                if(!tourStep.page.endsWith("/*") && !tourPageMatches(tourStep.page, location.pathname)){
+                    navigate(tourStep.page)
+                }
+            },
+            onNextClick: (element, step, opts) => {
+                const nextStep = opts.index !== undefined ? TOUR_STEPS[opts.index + 1] as CustomTourStep | undefined : undefined
+                if(nextStep && !tourPageMatches(nextStep.page, location.pathname)){
+                    return
+                }
+                driverObj.moveNext()
+            }
+        })
+        const startIndex = tourStartIndex(location.pathname)
+        driverObj.drive(startIndex === -1 ? 0 : startIndex)
+
+        return () => driverObj.destroy()
+    }, [])
 
     if(loading){
         return(
@@ -115,6 +151,7 @@ export function QuizComponent({type, fileId}: QuizProps){
                         <p className="mt-3 text-sm text-zinc-400">Multiple choice questions with 4 options each.</p>
 
                         <button
+                            id="quiz-start"
                             onClick={() => setShowIntro(false)}
                             className="mt-8 rounded-xl border border-violet-400/35 bg-violet-500/20 px-5 py-2.5 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30"
                         >
@@ -210,7 +247,7 @@ export function QuizComponent({type, fileId}: QuizProps){
                     </p>
                 </section>
 
-                <section className="mt-6 rounded-3xl border border-violet-500/20 bg-[#141420]/95 p-6 shadow-[0_28px_60px_-40px_rgba(46,16,101,0.8)]">
+                <section id="quiz-question" className="mt-6 rounded-3xl border border-violet-500/20 bg-[#141420]/95 p-6 shadow-[0_28px_60px_-40px_rgba(46,16,101,0.8)]">
                     {currentQuestion ? (
                         <>
                             {currentQuestion.concept && <p className="text-xs uppercase tracking-[0.18em] text-zinc-500">{currentQuestion.concept}</p>}

@@ -29,9 +29,10 @@ type NewTaskModalProps = {
   onClose: () => void;
   initialDate?: string;
   onTaskCreated?: () => void;
+  prefill?: { title: string; details: string; type: string; date: string };
 };
 
-export function NewTaskModal({ open, onClose, initialDate, onTaskCreated }: NewTaskModalProps) {
+export function NewTaskModal({ open, onClose, initialDate, onTaskCreated, prefill }: NewTaskModalProps) {
   const [type, setType] = useState<"Assignments" | "Tasks" | "Events" | string>("Assignments")
   const [title, setTitle] = useState("")
   const [details, setDetails] = useState("")
@@ -41,6 +42,16 @@ export function NewTaskModal({ open, onClose, initialDate, onTaskCreated }: NewT
   if (open !== prevOpen) {
     setPrevOpen(open)
     if (open && initialDate) setDate(initialDate)
+  }
+  const [prevPrefill, setPrevPrefill] = useState(prefill)
+  if (prefill !== prevPrefill) {
+    setPrevPrefill(prefill)
+    if (open && prefill) {
+      setTitle(prefill.title)
+      setDetails(prefill.details)
+      setType(prefill.type)
+      setDate(prefill.date)
+    }
   }
   const { userId, getToken } = useAuth()
   const [success, setSuccess] = useState<undefined | boolean>(undefined)
@@ -70,13 +81,14 @@ export function NewTaskModal({ open, onClose, initialDate, onTaskCreated }: NewT
   return createPortal(
     <div
       className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm"
-      onClick={onClose}
     >
-      <div className="flex min-h-full items-center justify-center px-4 py-10">
+      <div
+        className="flex min-h-full items-center justify-center px-4 py-10"
+        onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+      >
       <div
         id = "new-task"
         className="relative w-full max-w-md rounded-2xl border border-white/10 bg-[#12121a] p-6 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between">
           <div>
@@ -97,6 +109,7 @@ export function NewTaskModal({ open, onClose, initialDate, onTaskCreated }: NewT
           <div>
             <label className="text-xs font-medium text-zinc-300">Task Name</label>
             <input
+              value={title}
               onChange={(e) => setTitle(e.target.value) }
               type="text"
               placeholder="e.g. Reading Assignment #3"
@@ -107,6 +120,7 @@ export function NewTaskModal({ open, onClose, initialDate, onTaskCreated }: NewT
           <div>
             <label className="text-xs font-medium text-zinc-300">Details</label>
             <textarea
+              value={details}
               onChange={(e) => setDetails(e.target.value)}
               rows={4}
               placeholder="Add any notes, links, or instructions..."

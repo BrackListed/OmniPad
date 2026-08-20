@@ -4,6 +4,12 @@ import { useEffect, useState } from "react"
 import { ArrowLeft, ArrowRight, Loader2, RotateCcw } from "lucide-react"
 import { LeftSidebar } from "../../dashboard/LeftSidebar"
 import { MathText } from "./MathText"
+import { useNavigate } from "react-router-dom"
+import { driver } from "driver.js"
+import "driver.js/dist/driver.css"
+import "@/tour/tour.css"
+import { TOUR_STEPS, tourPageMatches, tourStartIndex } from "@/tour/tourSteps"
+import type { CustomTourStep } from "@/tour/tourSteps"
 
 interface FlashcardsProps{
     type: string | undefined
@@ -27,6 +33,7 @@ interface payloadType{
 
 export function FlashcardsComponent({type, fileId}: FlashcardsProps){
     const {userId, getToken} = useAuth()
+    const navigate = useNavigate()
     const [session, setSession] = useState<payloadType | null>(null)
     const [loading, setLoading] = useState(true)
     const [showIntro, setShowIntro] = useState(true)
@@ -57,6 +64,28 @@ export function FlashcardsComponent({type, fileId}: FlashcardsProps){
         fetchSessionData()
     }, [userId, type, fileId, getToken])
 
+    useEffect(() => {
+        const driverObj = driver({
+            showProgress: true,
+            animate: true,
+            popoverClass: "omnipad-tour",
+            overlayColor: "#0b0b12",
+            overlayOpacity: 0.75,
+            steps: TOUR_STEPS as NonNullable<Parameters<typeof driver>[0]>["steps"],
+            waitForElement: 3000,
+            onHighlightStarted: (element, step) => {
+                const tourStep = step as CustomTourStep
+                if(!tourPageMatches(tourStep.page, location.pathname)){
+                    navigate(tourStep.page)
+                }
+            }
+        })
+        const startIndex = tourStartIndex(location.pathname)
+        driverObj.drive(startIndex === -1 ? 0 : startIndex)
+
+        return () => driverObj.destroy()
+    }, [])
+
     if(loading){
         return(
             <div className="flex min-h-screen bg-[#0b0b12]">
@@ -84,6 +113,7 @@ export function FlashcardsComponent({type, fileId}: FlashcardsProps){
                         <p className="mt-3 text-sm text-zinc-400">Review one flashcard at a time. Flip for the back side.</p>
 
                         <button
+                            id="flashcards-start"
                             onClick={() => setShowIntro(false)}
                             className="mt-8 rounded-xl border border-violet-400/35 bg-violet-500/20 px-5 py-2.5 text-sm font-medium text-violet-100 transition hover:bg-violet-500/30"
                         >
@@ -130,6 +160,7 @@ export function FlashcardsComponent({type, fileId}: FlashcardsProps){
                             <p className="text-xs uppercase tracking-[0.18em] text-zinc-500"><MathText text={currentCard.concept ?? "Flashcard"} /></p>
 
                             <button
+                                id="flashcard-card"
                                 type="button"
                                 onClick={() => setShowBack((previous) => !previous)}
                                 className="mt-4 mx-auto flex w-full max-w-md aspect-3/4 flex-col rounded-3xl border border-violet-400/30 bg-[#0f0f17] p-7 text-left transition hover:border-violet-300/45 hover:bg-[#121220]"

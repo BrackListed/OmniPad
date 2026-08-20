@@ -10,7 +10,8 @@ import { CalendarGrid } from "../components/ui/calendar/CalendarGrid";
 import { CalendarDetailsPanel } from "../components/ui/calendar/CalendarDetailsPanel";
 import { driver } from "driver.js";
 import 'driver.js/dist/driver.css';
-import { TOUR_STEPS } from "@/tour/tourSteps";
+import "@/tour/tour.css";
+import { TOUR_STEPS, tourPageMatches, tourStartIndex } from "@/tour/tourSteps";
 import type { CustomTourStep } from "@/tour/tourSteps";
 import { useNavigate } from "react-router-dom";
 
@@ -39,6 +40,7 @@ export function Calendar() {
   const [viewTitle, setViewTitle] = useState("");
   const [currentView, setCurrentView] = useState<CalendarView>("dayGridMonth");
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
+  const [taskPrefill, setTaskPrefill] = useState<{ title: string; details: string; type: string; date: string } | undefined>(undefined);
   const navigate = useNavigate()
   const fetchTasksData = async () => {
     if (!userId) return;
@@ -66,23 +68,36 @@ export function Calendar() {
     const driverObj = driver({
       showProgress: true,
       animate: true,
+      popoverClass: "omnipad-tour",
+      overlayColor: "#0b0b12",
+      overlayOpacity: 0.75,
       steps: TOUR_STEPS as NonNullable<Parameters<typeof driver>[0]>["steps"],
       waitForElement: 3000,
       onHighlightStarted: (element, step) => {
         const tourStep = step as CustomTourStep
-        if(tourStep.page !== location.pathname){
+        if(!tourPageMatches(tourStep.page, location.pathname)){
           navigate(tourStep.page)
         }
+        if(tourStep.element === "#new-task"){
+          setTaskPrefill({ title: "Calculus Assignment A", details: "Solve problems 5 through 10", type: "Assignments", date: "2026-08-31" })
+        }
       },
-      onNextClick: (element, step) => {
+      onDeselected: (element, step) => {
         const tourStep = step as CustomTourStep
-        if(tourStep.element === "#add-task"){
-          setIsNewTaskOpen(true)
+        if(tourStep.element === "#new-task-added"){
+          setIsNewTaskOpen(false)
+        }
+      },
+      onNextClick: (element, step, opts) => {
+        const nextStep = opts.index !== undefined ? TOUR_STEPS[opts.index + 1] as CustomTourStep | undefined : undefined
+        if(nextStep && !tourPageMatches(nextStep.page, location.pathname)){
+          navigate(nextStep.page)
+          return
         }
         driverObj.moveNext()
       }
     })
-    const startIndex = TOUR_STEPS.findIndex(step => step.page === location.pathname)
+    const startIndex = tourStartIndex(location.pathname)
     driverObj.drive(startIndex === -1 ? 0 : startIndex)
 
     return () => driverObj.destroy()
@@ -135,6 +150,7 @@ export function Calendar() {
         onClose={() => setIsNewTaskOpen(false)}
         initialDate={selectedDate}
         onTaskCreated={fetchTasksData}
+        prefill={taskPrefill}
       />
     </div>
   );
