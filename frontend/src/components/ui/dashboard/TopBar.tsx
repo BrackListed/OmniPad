@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Flame, Plus, Search } from "lucide-react";
+import { Bell, Plus, Search } from "lucide-react";
 import { useUser } from "@clerk/react";
 import { NewTaskModal } from "./NewTaskModal";
 
@@ -46,15 +46,6 @@ export function TopBar() {
         >
           <Plus className="h-4 w-4" strokeWidth={2.5} />
           New Task / Upload Module
-        </button>
-
-        <div className="flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm font-semibold text-white">
-          <Flame className="h-4 w-4 text-orange-400" strokeWidth={2} fill="currentColor" />
-          12
-        </div>
-
-        <button className="whitespace-nowrap rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/15">
-          Check-in
         </button>
       </div>
 

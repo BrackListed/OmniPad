@@ -75,6 +75,13 @@ const upload = multer({storage: storage})
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 
+app.get("/users/:userId", async(req, res) => {
+  const {userId} = req.params
+  const result = await pool.query("SELECT id, username, email, has_seen_tour FROM users WHERE clerk_user_id = $1", [userId])
+  if(result.rows.length === 0) return res.status(404).json({message: "User not found"})
+  res.json(result.rows[0])
+})
+
 app.get("/tasks/:userId", async(req, res) => {
   const {userId} = req.params
   try{
@@ -266,7 +273,7 @@ app.patch("/complete/:fileId/:userId", async(req, res) => {
 app.patch("/users/complete-tour/:userId", async(req, res) => {
   const {userId} = req.params
   const id = await pool.query("SELECT id FROM users WHERE clerk_user_id = $1", [userId])
-  await pool.query("UPDATE users SET has_seen_tour = $1 WHERE user_id = $2", [true, id.rows[0].id])
+  await pool.query("UPDATE users SET has_seen_tour = $1 WHERE id = $2", [true, id.rows[0].id])
   res.json({message: "Tour completed"})
 })
 

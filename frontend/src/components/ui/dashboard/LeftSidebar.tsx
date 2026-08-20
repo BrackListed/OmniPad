@@ -1,6 +1,7 @@
-import { LayoutGrid, Calendar, BookOpen, LineChart, Settings } from "lucide-react";
+import { LayoutGrid, Calendar, BookOpen, LineChart, RotateCcw } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { UserButton } from "@clerk/react";
+import { triggerTourReplay } from "@/tour/tourSteps";
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -11,7 +12,7 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
 
 export function LeftSidebar() {
   return (
-    <aside className="flex h-screen w-60 shrink-0 flex-col justify-between border-r border-white/10 bg-[#0b0b12] px-3 py-5">
+    <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col justify-between border-r border-white/10 bg-[#0b0b12] px-3 py-5">
       <div className="flex flex-col gap-6">
         <div className="flex items-center gap-2 px-2">
           <UserButton />
@@ -38,10 +39,17 @@ export function LeftSidebar() {
         </nav>
       </div>
 
-      <NavLink to="/settings" className={linkClass}>
-        <Settings className="h-4.5 w-4.5" strokeWidth={2} />
-        Settings
-      </NavLink>
+      <button
+        type="button"
+        onClick={() => {
+          triggerTourReplay()
+          window.location.href = "/"
+        }}
+        className={linkClass({ isActive: false })}
+      >
+        <RotateCcw className="h-4.5 w-4.5" strokeWidth={2} />
+        Replay Tour
+      </button>
     </aside>
   );
 }

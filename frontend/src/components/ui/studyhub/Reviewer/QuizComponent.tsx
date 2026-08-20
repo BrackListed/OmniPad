@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom"
 import { driver } from "driver.js"
 import "driver.js/dist/driver.css"
 import "@/tour/tour.css"
-import { TOUR_STEPS, tourPageMatches, tourStartIndex, markTourStepReached, markModeVisited } from "@/tour/tourSteps"
+import { TOUR_STEPS, tourPageMatches, tourStartIndex, markTourStepReached, markModeVisited, isTourActive, deactivateTour, completeTour } from "@/tour/tourSteps"
 import type { CustomTourStep } from "@/tour/tourSteps"
 
 interface QuizProps{
@@ -72,6 +72,7 @@ export function QuizComponent({type, fileId}: QuizProps){
     }, [userId, type, fileId, getToken])
 
     useEffect(() => {
+        if(!isTourActive()) return
         const driverObj = driver({
             showProgress: true,
             animate: true,
@@ -93,6 +94,16 @@ export function QuizComponent({type, fileId}: QuizProps){
                     return
                 }
                 driverObj.moveNext()
+            },
+            onCloseClick: () => {
+                driverObj.destroy()
+                deactivateTour()
+                if(userId) getToken().then((token) => completeTour(userId, token))
+            },
+            onDoneClick: () => {
+                driverObj.destroy()
+                deactivateTour()
+                if(userId) getToken().then((token) => completeTour(userId, token))
             }
         })
         markModeVisited("Quiz")

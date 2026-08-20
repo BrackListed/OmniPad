@@ -11,7 +11,7 @@ import { CalendarDetailsPanel } from "../components/ui/calendar/CalendarDetailsP
 import { driver } from "driver.js";
 import 'driver.js/dist/driver.css';
 import "@/tour/tour.css";
-import { TOUR_STEPS, tourPageMatches, tourStartIndex, markTourStepReached } from "@/tour/tourSteps";
+import { TOUR_STEPS, tourPageMatches, tourStartIndex, markTourStepReached, isTourActive, deactivateTour, completeTour } from "@/tour/tourSteps";
 import type { CustomTourStep } from "@/tour/tourSteps";
 import { useNavigate } from "react-router-dom";
 
@@ -65,6 +65,7 @@ export function Calendar() {
 
   useEffect(() => {
     if(!isLoaded) return
+    if(!isTourActive()) return
     const driverObj = driver({
       showProgress: true,
       animate: true,
@@ -96,6 +97,16 @@ export function Calendar() {
           return
         }
         driverObj.moveNext()
+      },
+      onCloseClick: () => {
+        driverObj.destroy()
+        deactivateTour()
+        if(userId) getToken().then((token) => completeTour(userId, token))
+      },
+      onDoneClick: () => {
+        driverObj.destroy()
+        deactivateTour()
+        if(userId) getToken().then((token) => completeTour(userId, token))
       }
     })
     const startIndex = tourStartIndex(location.pathname)

@@ -19,7 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
 import "@/tour/tour.css";
-import { TOUR_STEPS, tourPageMatches, markTourStepReached, studyHubResumeIndex } from "@/tour/tourSteps";
+import { TOUR_STEPS, tourPageMatches, markTourStepReached, studyHubResumeIndex, isTourActive, deactivateTour, completeTour } from "@/tour/tourSteps";
 import type { CustomTourStep } from "@/tour/tourSteps";
 
 type PipelineStatus = "idle" | "processing" | "complete";
@@ -54,6 +54,7 @@ export function ModulePipeline() {
   const pendingCardIndexRef = useRef<number | null>(null)
 
   useEffect(() => {
+    if(!isTourActive()) return
     const driverObj = driver({
       showProgress: true,
       animate: true,
@@ -75,6 +76,16 @@ export function ModulePipeline() {
           return
         }
         driverObj.moveNext()
+      },
+      onCloseClick: () => {
+        driverObj.destroy()
+        deactivateTour()
+        if(userId) getToken().then((token) => completeTour(userId, token))
+      },
+      onDoneClick: () => {
+        driverObj.destroy()
+        deactivateTour()
+        if(userId) getToken().then((token) => completeTour(userId, token))
       }
     })
     driverRef.current = driverObj

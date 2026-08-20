@@ -1,7 +1,52 @@
 import type { DriveStep } from "driver.js";
+import axios from "axios";
 
 export interface CustomTourStep extends DriveStep {
   page: string;
+}
+
+const TOUR_ACTIVE_KEY = "omnipad-tour-active";
+
+export function isTourActive(): boolean {
+  return sessionStorage.getItem(TOUR_ACTIVE_KEY) === "1";
+}
+
+export function activateTour(): void {
+  sessionStorage.setItem(TOUR_ACTIVE_KEY, "1");
+}
+
+export function deactivateTour(): void {
+  sessionStorage.removeItem(TOUR_ACTIVE_KEY);
+}
+
+export function triggerTourReplay(): void {
+  furthestStepReached = -1;
+  visitedModes.clear();
+  activateTour();
+}
+
+export async function shouldAutoStartTour(userId: string, token: string | null): Promise<boolean> {
+  if (!token) return false;
+  try {
+    const result = await axios.get(`http://localhost:5000/users/${userId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return !result.data.has_seen_tour;
+  } catch (error) {
+    console.error("Failed to check tour status", error);
+    return false;
+  }
+}
+
+export async function completeTour(userId: string, token: string | null): Promise<void> {
+  if (!token) return;
+  try {
+    await axios.patch(`http://localhost:5000/users/complete-tour/${userId}`, {}, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch (error) {
+    console.error("Failed to mark tour complete", error);
+  }
 }
 
 export function tourPageMatches(stepPage: string, pathname: string): boolean {

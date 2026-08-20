@@ -4,20 +4,21 @@ import { LeftSidebar } from "../components/ui/dashboard/LeftSidebar";
 import { TopBar } from "../components/ui/dashboard/TopBar";
 import { PriorityQueueCard } from "../components/ui/dashboard/PriorityQueueCard";
 import { CalendarPreviewCard } from "../components/ui/dashboard/CalendarPreviewCard";
-import { QuickJumpCard } from "../components/ui/dashboard/QuickJumpCard";
+import { RecentlyReviewedCard } from "../components/ui/dashboard/RecentlyReviewedCard";
 import { StudyVelocityCard } from "../components/ui/dashboard/StudyVelocityCard";
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import "@/tour/tour.css";
-import { TOUR_STEPS, tourPageMatches, tourStartIndex, markTourStepReached } from "@/tour/tourSteps";
+import { TOUR_STEPS, tourPageMatches, tourStartIndex, markTourStepReached, isTourActive, activateTour, deactivateTour, shouldAutoStartTour, completeTour } from "@/tour/tourSteps";
 import type { CustomTourStep } from "@/tour/tourSteps";
 import { useEffect } from "react";
 
 
 export function Dashboard() {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, userId, getToken } = useAuth();
   const navigate = useNavigate()
   useEffect(() => {
+    if(!userId) return
     const driverObj = driver({
       showProgress: true,
       animate: true,
@@ -40,13 +41,33 @@ export function Dashboard() {
           return
         }
         driverObj.moveNext()
+      },
+      onCloseClick: () => {
+        driverObj.destroy()
+        deactivateTour()
+        getToken().then((token) => completeTour(userId, token))
+      },
+      onDoneClick: () => {
+        driverObj.destroy()
+        deactivateTour()
+        getToken().then((token) => completeTour(userId, token))
       }
     })
-    const startIndex = tourStartIndex(location.pathname)
-    driverObj.drive(startIndex === -1 ? 0 : startIndex)
+
+    async function initTour(){
+      if(!isTourActive()){
+        const token = await getToken()
+        const shouldStart = await shouldAutoStartTour(userId!, token)
+        if(!shouldStart) return
+        activateTour()
+      }
+      const startIndex = tourStartIndex(location.pathname)
+      driverObj.drive(startIndex === -1 ? 0 : startIndex)
+    }
+    initTour()
 
     return () => driverObj.destroy()
-  }, [])
+  }, [userId])
   if (!isLoaded) {
     return <div className="min-h-screen bg-[#0b0b12]" />;
   }
@@ -71,7 +92,7 @@ export function Dashboard() {
             <div id = "priority-queue">
               <PriorityQueueCard />
             </div>
-            <QuickJumpCard />
+            <RecentlyReviewedCard />
           </div>
           <div className="col-span-1 flex flex-col gap-6">
             <CalendarPreviewCard />
