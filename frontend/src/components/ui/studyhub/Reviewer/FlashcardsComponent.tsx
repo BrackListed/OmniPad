@@ -74,13 +74,13 @@ export function FlashcardsComponent({type, fileId}: FlashcardsProps){
             overlayOpacity: 0.75,
             steps: TOUR_STEPS as NonNullable<Parameters<typeof driver>[0]>["steps"],
             waitForElement: 3000,
-            onHighlightStarted: (element, step) => {
+            onHighlightStarted: (_element, step) => {
                 const tourStep = step as CustomTourStep
                 if(!tourPageMatches(tourStep.page, location.pathname)){
                     navigate(tourStep.page)
                 }
             },
-            onNextClick: (element, step, opts) => {
+            onNextClick: (_element, _step, opts) => {
                 markTourStepReached(opts.index)
                 driverObj.moveNext()
             },

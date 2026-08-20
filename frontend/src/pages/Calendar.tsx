@@ -74,7 +74,7 @@ export function Calendar() {
       overlayOpacity: 0.75,
       steps: TOUR_STEPS as NonNullable<Parameters<typeof driver>[0]>["steps"],
       waitForElement: 3000,
-      onHighlightStarted: (element, step) => {
+      onHighlightStarted: (_element, step) => {
         const tourStep = step as CustomTourStep
         if(!tourPageMatches(tourStep.page, location.pathname)){
           navigate(tourStep.page)
@@ -83,13 +83,13 @@ export function Calendar() {
           setTaskPrefill({ title: "Calculus Assignment A", details: "Solve problems 5 through 10", type: "Assignments", date: "2026-08-31" })
         }
       },
-      onDeselected: (element, step) => {
+      onDeselected: (_element, step) => {
         const tourStep = step as CustomTourStep
         if(tourStep.element === "#new-task-added"){
           setIsNewTaskOpen(false)
         }
       },
-      onNextClick: (element, step, opts) => {
+      onNextClick: (_element, _step, opts) => {
         markTourStepReached(opts.index)
         const nextStep = opts.index !== undefined ? TOUR_STEPS[opts.index + 1] as CustomTourStep | undefined : undefined
         if(nextStep && !tourPageMatches(nextStep.page, location.pathname)){

@@ -63,13 +63,13 @@ export function ModulePipeline() {
       overlayOpacity: 0.75,
       steps: TOUR_STEPS as NonNullable<Parameters<typeof driver>[0]>["steps"],
       waitForElement: 3000,
-      onHighlightStarted: (element, step) => {
+      onHighlightStarted: (_element, step) => {
         const tourStep = step as CustomTourStep
         if(!tourStep.page.endsWith("/*") && !tourPageMatches(tourStep.page, location.pathname)){
           navigate(tourStep.page)
         }
       },
-      onNextClick: (element, step, opts) => {
+      onNextClick: (_element, _step, opts) => {
         markTourStepReached(opts.index)
         const nextStep = opts.index !== undefined ? TOUR_STEPS[opts.index + 1] as CustomTourStep | undefined : undefined
         if(nextStep && !tourPageMatches(nextStep.page, location.pathname)){
