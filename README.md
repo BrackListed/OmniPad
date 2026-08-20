@@ -154,6 +154,4 @@ Then open **http://localhost:5173**.
 
 ## 🌐 Live Demo
 
-**[⚠️ ADD YOUR VERCEL URL HERE]**
-
-> The frontend deploys cleanly to Vercel as a static SPA. The API, worker, Redis, and Postgres need to run somewhere that supports long-lived Node processes (e.g. Render, Railway, Fly.io) — Vercel's serverless functions aren't a fit for the BullMQ worker.
+**[https://omni-pad-sepia.vercel.app/]**
