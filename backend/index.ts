@@ -144,14 +144,23 @@ app.post('/upload/file/:userId', upload.single('file'), async(req, res) => {
   const fileHash = crypto.createHash(`sha256`).update(fileBuffer).digest('hex')
   const existingFile = await pool.query("SELECT id, path FROM file WHERE user_id = $1 and file_hash = $2", [id.rows[0].id, fileHash])
   if(existingFile.rows.length > 0){
-    if(fs.existsSync(file!.path)){
-      fs.unlinkSync(file!.path)
+    if(fs.existsSync(existingFile.rows[0].path)){
+      if(fs.existsSync(file!.path)){
+        fs.unlinkSync(file!.path)
+      }
+
+      return res.status(200).json({
+        message: "Duplicate file detected. Reusing existing file record.",
+        id: existingFile.rows[0].id,
+        path: existingFile.rows[0].path
+      });
     }
 
+    await pool.query("UPDATE file SET path = $1 WHERE id = $2", [file!.path, existingFile.rows[0].id])
     return res.status(200).json({
-      message: "Duplicate file detected. Reusing existing file record.",
+      message: "Existing file was missing on disk. Recreated from new upload.",
       id: existingFile.rows[0].id,
-      path: existingFile.rows[0].path
+      path: file!.path
     });
   }
   const result = await pool.query("INSERT INTO file(filename, user_id, path, file_hash) VALUES($1, $2, $3, $4) RETURNING id, path", [file?.originalname, id.rows[0].id, file.path, fileHash])

@@ -85,6 +85,9 @@ const pdfWorker = new Worker(
     "pdf-processing",
     async(job) => {
         const {fileId, userId, type, filePath} = job.data
+        if(!fs.existsSync(filePath)){
+            throw new Error("Source file is missing on disk. Please re-upload the file.")
+        }
         const buffer = fs.readFileSync(filePath)
         const parser = new PDFParse({data: buffer})
         const data = await parser.getText()
