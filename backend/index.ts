@@ -6,13 +6,12 @@ import { Pool } from "pg"
 import { drizzle } from "drizzle-orm/node-postgres"
 import { clerkMiddleware } from '@clerk/express'
 import multer from "multer"
-import path from "path"
 import {Queue} from "bullmq"
 import IORedis from "ioredis"
-import fs from "fs"
 import crypto from "crypto";
 import Groq from "groq-sdk";
 import { file } from "./db/schema.js"
+import { supabase, PDF_BUCKET } from "./supabase.js"
 import "./worker.js"
 const app = express()
 const pool = new Pool({connectionString: process.env.DATABASE_URL})
@@ -64,17 +63,7 @@ async function waitForJob(job: Awaited<ReturnType<Queue['add']>>, timeoutMs = 12
   }
   throw new Error('Job timed out')
 }
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/')
-  },
-  filename: function (req, file, cb) {
-    const shortName = Date.now() + path.extname(file.originalname);
-    cb(null, shortName)
-  }
-})
-
-const upload = multer({storage: storage})
+const upload = multer({storage: multer.memoryStorage()})
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 
@@ -142,30 +131,31 @@ app.post('/upload/file/:userId', upload.single('file'), async(req, res) => {
   const id = await pool.query("SELECT id FROM users WHERE clerk_user_id = $1", [userId])
   const file = req.file
   if(!file) return res.status(400).json({error: "No file uploaded"})
-  const fileBuffer = fs.readFileSync(file!.path)
-  const fileHash = crypto.createHash(`sha256`).update(fileBuffer).digest('hex')
-  const existingFile = await pool.query("SELECT id, path FROM file WHERE user_id = $1 and file_hash = $2", [id.rows[0].id, fileHash])
+  const userDbId = id.rows[0].id
+  const fileHash = crypto.createHash(`sha256`).update(file.buffer).digest('hex')
+  const storagePath = `${userDbId}/${fileHash}.pdf`
+
+  const { error: uploadError } = await supabase.storage.from(PDF_BUCKET).upload(storagePath, file.buffer, {
+    contentType: file.mimetype || "application/pdf",
+    upsert: true
+  })
+  if(uploadError){
+    console.error("Failed to upload file to Supabase Storage:", uploadError)
+    return res.status(500).json({error: "Failed to upload file"})
+  }
+
+  const existingFile = await pool.query("SELECT id, path FROM file WHERE user_id = $1 and file_hash = $2", [userDbId, fileHash])
   if(existingFile.rows.length > 0){
-    if(fs.existsSync(existingFile.rows[0].path)){
-      if(fs.existsSync(file!.path)){
-        fs.unlinkSync(file!.path)
-      }
-
-      return res.status(200).json({
-        message: "Duplicate file detected. Reusing existing file record.",
-        id: existingFile.rows[0].id,
-        path: existingFile.rows[0].path
-      });
+    if(existingFile.rows[0].path !== storagePath){
+      await pool.query("UPDATE file SET path = $1 WHERE id = $2", [storagePath, existingFile.rows[0].id])
     }
-
-    await pool.query("UPDATE file SET path = $1 WHERE id = $2", [file!.path, existingFile.rows[0].id])
     return res.status(200).json({
-      message: "Existing file was missing on disk. Recreated from new upload.",
+      message: "Duplicate file detected. Reusing existing file record.",
       id: existingFile.rows[0].id,
-      path: file!.path
+      path: storagePath
     });
   }
-  const result = await pool.query("INSERT INTO file(filename, user_id, path, file_hash) VALUES($1, $2, $3, $4) RETURNING id, path", [file?.originalname, id.rows[0].id, file.path, fileHash])
+  const result = await pool.query("INSERT INTO file(filename, user_id, path, file_hash) VALUES($1, $2, $3, $4) RETURNING id, path", [file.originalname, userDbId, storagePath, fileHash])
   res.json({id: result.rows[0].id, path: result.rows[0].path})
 })
 

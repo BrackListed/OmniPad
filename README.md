@@ -76,6 +76,7 @@ flowchart TD
 | API | Express 5, Drizzle ORM (schema) + raw `pg` queries |
 | Async jobs | BullMQ + Redis |
 | Database | PostgreSQL |
+| File storage | Supabase Storage |
 | LLM | Groq (`openai/gpt-oss-20b`) |
 | File parsing | `pdf-parse` |
 
@@ -88,6 +89,7 @@ flowchart TD
 - Node.js 20+
 - A PostgreSQL database (local, [Neon](https://neon.tech), [Supabase](https://supabase.com), etc.)
 - A Redis instance reachable via `REDIS_URL` (see `redisConnection` in `backend/index.ts` and `backend/worker.ts`)
+- A [Supabase](https://supabase.com) project with a Storage bucket named `pdfs` (uploaded PDFs are stored here, not on local disk — required so uploads survive redeploys/restarts)
 - A [Clerk](https://clerk.com) application (publishable key, secret key, webhook signing secret)
 - A [Groq](https://console.groq.com) API key
 
@@ -109,9 +111,12 @@ Create `backend/.env`:
 DATABASE_URL=postgresql://user:password@host:5432/dbname
 PORT=5000
 FRONTEND_URL=http://localhost:5173
+REDIS_URL=redis://localhost:6379
 GROQ_API_KEY=your_groq_api_key
 CLERK_SECRET_KEY=your_clerk_secret_key
 CLERK_WEBHOOK_SIGNING_SECRET=your_clerk_webhook_signing_secret
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 ```
 
 Create `frontend/.env`:

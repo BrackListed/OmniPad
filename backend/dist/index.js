@@ -11,12 +11,11 @@ const pg_1 = require("pg");
 const node_postgres_1 = require("drizzle-orm/node-postgres");
 const express_2 = require("@clerk/express");
 const multer_1 = __importDefault(require("multer"));
-const path_1 = __importDefault(require("path"));
 const bullmq_1 = require("bullmq");
 const ioredis_1 = __importDefault(require("ioredis"));
-const fs_1 = __importDefault(require("fs"));
 const crypto_1 = __importDefault(require("crypto"));
 const groq_sdk_1 = __importDefault(require("groq-sdk"));
+const supabase_js_1 = require("./supabase.js");
 require("./worker.js");
 const app = (0, express_1.default)();
 const pool = new pg_1.Pool({ connectionString: process.env.DATABASE_URL });
@@ -58,16 +57,7 @@ async function waitForJob(job, timeoutMs = 120000, intervalMs = 300) {
     }
     throw new Error('Job timed out');
 }
-const storage = multer_1.default.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'uploads/');
-    },
-    filename: function (req, file, cb) {
-        const shortName = Date.now() + path_1.default.extname(file.originalname);
-        cb(null, shortName);
-    }
-});
-const upload = (0, multer_1.default)({ storage: storage });
+const upload = (0, multer_1.default)({ storage: multer_1.default.memoryStorage() });
 const groq = new groq_sdk_1.default({ apiKey: process.env.GROQ_API_KEY });
 app.get("/users/:userId", async (req, res) => {
     const { userId } = req.params;
@@ -131,28 +121,29 @@ app.post('/upload/file/:userId', upload.single('file'), async (req, res) => {
     const file = req.file;
     if (!file)
         return res.status(400).json({ error: "No file uploaded" });
-    const fileBuffer = fs_1.default.readFileSync(file.path);
-    const fileHash = crypto_1.default.createHash(`sha256`).update(fileBuffer).digest('hex');
-    const existingFile = await pool.query("SELECT id, path FROM file WHERE user_id = $1 and file_hash = $2", [id.rows[0].id, fileHash]);
+    const userDbId = id.rows[0].id;
+    const fileHash = crypto_1.default.createHash(`sha256`).update(file.buffer).digest('hex');
+    const storagePath = `${userDbId}/${fileHash}.pdf`;
+    const { error: uploadError } = await supabase_js_1.supabase.storage.from(supabase_js_1.PDF_BUCKET).upload(storagePath, file.buffer, {
+        contentType: file.mimetype || "application/pdf",
+        upsert: true
+    });
+    if (uploadError) {
+        console.error("Failed to upload file to Supabase Storage:", uploadError);
+        return res.status(500).json({ error: "Failed to upload file" });
+    }
+    const existingFile = await pool.query("SELECT id, path FROM file WHERE user_id = $1 and file_hash = $2", [userDbId, fileHash]);
     if (existingFile.rows.length > 0) {
-        if (fs_1.default.existsSync(existingFile.rows[0].path)) {
-            if (fs_1.default.existsSync(file.path)) {
-                fs_1.default.unlinkSync(file.path);
-            }
-            return res.status(200).json({
-                message: "Duplicate file detected. Reusing existing file record.",
-                id: existingFile.rows[0].id,
-                path: existingFile.rows[0].path
-            });
+        if (existingFile.rows[0].path !== storagePath) {
+            await pool.query("UPDATE file SET path = $1 WHERE id = $2", [storagePath, existingFile.rows[0].id]);
         }
-        await pool.query("UPDATE file SET path = $1 WHERE id = $2", [file.path, existingFile.rows[0].id]);
         return res.status(200).json({
-            message: "Existing file was missing on disk. Recreated from new upload.",
+            message: "Duplicate file detected. Reusing existing file record.",
             id: existingFile.rows[0].id,
-            path: file.path
+            path: storagePath
         });
     }
-    const result = await pool.query("INSERT INTO file(filename, user_id, path, file_hash) VALUES($1, $2, $3, $4) RETURNING id, path", [file?.originalname, id.rows[0].id, file.path, fileHash]);
+    const result = await pool.query("INSERT INTO file(filename, user_id, path, file_hash) VALUES($1, $2, $3, $4) RETURNING id, path", [file.originalname, userDbId, storagePath, fileHash]);
     res.json({ id: result.rows[0].id, path: result.rows[0].path });
 });
 app.post("/generate/session/:userId", async (req, res) => {

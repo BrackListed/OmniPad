@@ -8,7 +8,7 @@ const pdf_parse_1 = require("pdf-parse");
 const pg_1 = require("pg");
 const bullmq_1 = require("bullmq");
 const ioredis_1 = __importDefault(require("ioredis"));
-const fs_1 = __importDefault(require("fs"));
+const supabase_js_1 = require("./supabase.js");
 const groq = new groq_sdk_1.default({ apiKey: process.env.GROQ_API_KEY });
 const redisConnection = new ioredis_1.default(process.env.REDIS_URL, { maxRetriesPerRequest: null });
 const pool = new pg_1.Pool({ connectionString: process.env.DATABASE_URL });
@@ -88,10 +88,12 @@ function getPrompt(type) {
 const pdfWorker = new bullmq_1.Worker("pdf-processing", async (job) => {
     const { fileId, userId, type, filePath } = job.data;
     console.log(`[Worker] Received job ${job.id} — fileId=${fileId}, type=${type}, filePath=${filePath}`);
-    if (!fs_1.default.existsSync(filePath)) {
-        throw new Error("Source file is missing on disk. Please re-upload the file.");
+    const { data: fileData, error: downloadError } = await supabase_js_1.supabase.storage.from(supabase_js_1.PDF_BUCKET).download(filePath);
+    if (downloadError || !fileData) {
+        console.error(`[Worker] Failed to download ${filePath} from Supabase Storage:`, downloadError);
+        throw new Error("Source file is missing in storage. Please re-upload the file.");
     }
-    const buffer = fs_1.default.readFileSync(filePath);
+    const buffer = Buffer.from(await fileData.arrayBuffer());
     const parser = new pdf_parse_1.PDFParse({ data: buffer });
     const data = await parser.getText();
     await parser.destroy();
