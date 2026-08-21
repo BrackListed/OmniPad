@@ -10,6 +10,9 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const redisConnection = new IORedis(process.env.REDIS_URL, {maxRetriesPerRequest: null})
 const pool = new Pool({connectionString: process.env.DATABASE_URL})
 
+redisConnection.on("connect", () => console.log("[Worker] Connected to Redis"))
+redisConnection.on("error", (err) => console.error("[Worker] Redis connection error:", err.message))
+
 function getPrompt(type){
     const baseInstruction = "You are an AI study assistant. Extract concepts from the provided text and output ONLY valid JSON adhering strictly to the required schema. Do not include markdown code block formatting (like ```json) in your final response if JSON mode is enabled.";
     switch(type){
@@ -85,6 +88,7 @@ const pdfWorker = new Worker(
     "pdf-processing",
     async(job) => {
         const {fileId, userId, type, filePath} = job.data
+        console.log(`[Worker] Received job ${job.id} — fileId=${fileId}, type=${type}, filePath=${filePath}`)
         if(!fs.existsSync(filePath)){
             throw new Error("Source file is missing on disk. Please re-upload the file.")
         }
@@ -106,7 +110,9 @@ const pdfWorker = new Worker(
             title: "",
             questions: [],
         };
+        console.log(`[Worker] Job ${job.id}: parsed ${text.length} chars into ${textChunks.length} chunk(s), starting Groq generation`)
         for(let i = 0; i < textChunks.length; i++){
+            console.log(`[Worker] Job ${job.id}: requesting chunk ${i + 1}/${textChunks.length} from Groq`)
             const completion = await groq.chat.completions.create({
                 model: "openai/gpt-oss-20b",
                 response_format: {type: "json_object"},
@@ -126,6 +132,7 @@ const pdfWorker = new Worker(
             payload.questions.push(...newItems)
             completionsList.push(parsedData)
         }
+        console.log(`[Worker] Job ${job.id}: Groq generation complete, saving study session`)
         payload.questions = payload.questions.map((item, index) => ({
             ...item,
             id: index + 1

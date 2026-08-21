@@ -51,6 +51,7 @@ app.use(clerkMiddleware())
 app.use(express.json())
 
 const redisConnection = new IORedis(process.env.REDIS_URL!, {maxRetriesPerRequest: null})
+redisConnection.on("error", (err) => console.error("[API] Redis connection error:", err.message))
 
 async function waitForJob(job: Awaited<ReturnType<Queue['add']>>, timeoutMs = 120000, intervalMs = 300) {
   const start = Date.now()
