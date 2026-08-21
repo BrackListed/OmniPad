@@ -1,23 +1,22 @@
 import Groq from "groq-sdk";
 import { PDFParse } from "pdf-parse";
-import {Pool} from "pg"
+import { Pool } from "pg"
 import { Worker } from "bullmq";
 import IORedis from "ioredis"
 import fs from "fs"
-import 'dotenv/config'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const redisConnection = new IORedis(process.env.REDIS_URL, {maxRetriesPerRequest: null})
-const pool = new Pool({connectionString: process.env.DATABASE_URL})
+const redisConnection = new IORedis(process.env.REDIS_URL!, { maxRetriesPerRequest: null })
+const pool = new Pool({ connectionString: process.env.DATABASE_URL })
 
 redisConnection.on("connect", () => console.log("[Worker] Connected to Redis"))
 redisConnection.on("error", (err) => console.error("[Worker] Redis connection error:", err.message))
 
-function getPrompt(type){
+function getPrompt(type: string) {
     const baseInstruction = "You are an AI study assistant. Extract concepts from the provided text and output ONLY valid JSON adhering strictly to the required schema. Do not include markdown code block formatting (like ```json) in your final response if JSON mode is enabled.";
-    switch(type){
-        case "Feynman" :
-            return`${baseInstruction} 
+    switch (type) {
+        case "Feynman":
+            return `${baseInstruction}
                 Mode: Feynman Technique. Generate open-ended questions designed to make the user explain key concepts in simple terms.
                 JSON Schema Format Required:
                 {
@@ -32,7 +31,7 @@ function getPrompt(type){
                         }
                     ]
                 }`
-        case "Socratic" :
+        case "Socratic":
             return `${baseInstruction}
                 Mode: Socratic Method. Generate guiding, probe-style questions that lead the user to discover deep insights about the material themselves.
                 JSON Schema Format Required:
@@ -84,23 +83,24 @@ function getPrompt(type){
             throw new Error(`Unsupported type: ${type}`)
     }
 }
+
 const pdfWorker = new Worker(
     "pdf-processing",
-    async(job) => {
-        const {fileId, userId, type, filePath} = job.data
+    async (job) => {
+        const { fileId, userId, type, filePath } = job.data
         console.log(`[Worker] Received job ${job.id} — fileId=${fileId}, type=${type}, filePath=${filePath}`)
-        if(!fs.existsSync(filePath)){
+        if (!fs.existsSync(filePath)) {
             throw new Error("Source file is missing on disk. Please re-upload the file.")
         }
         const buffer = fs.readFileSync(filePath)
-        const parser = new PDFParse({data: buffer})
+        const parser = new PDFParse({ data: buffer })
         const data = await parser.getText()
         await parser.destroy()
         const text = data.text
         const CHUNK_SIZE = 12000
-        if(!text.trim()) { throw new Error("No text found!")}
+        if (!text.trim()) { throw new Error("No text found!") }
         const textChunks = []
-        for(let i = 0; i < text.length; i+= CHUNK_SIZE){
+        for (let i = 0; i < text.length; i += CHUNK_SIZE) {
             textChunks.push(text.slice(i, i + CHUNK_SIZE))
         }
         const systemPrompt = getPrompt(type)
@@ -108,14 +108,14 @@ const pdfWorker = new Worker(
         let payload = {
             type: type,
             title: "",
-            questions: [],
+            questions: [] as any[],
         };
         console.log(`[Worker] Job ${job.id}: parsed ${text.length} chars into ${textChunks.length} chunk(s), starting Groq generation`)
-        for(let i = 0; i < textChunks.length; i++){
+        for (let i = 0; i < textChunks.length; i++) {
             console.log(`[Worker] Job ${job.id}: requesting chunk ${i + 1}/${textChunks.length} from Groq`)
             const completion = await groq.chat.completions.create({
                 model: "openai/gpt-oss-20b",
-                response_format: {type: "json_object"},
+                response_format: { type: "json_object" },
                 messages: [{
                     role: "system",
                     content: systemPrompt
@@ -126,7 +126,7 @@ const pdfWorker = new Worker(
                 }
                 ]
             })
-            const parsedData = JSON.parse(completion.choices[0].message.content);
+            const parsedData = JSON.parse(completion.choices[0].message.content as string);
             payload.title = parsedData.title || payload.title
             const newItems = parsedData.questions || []
             payload.questions.push(...newItems)
@@ -140,13 +140,13 @@ const pdfWorker = new Worker(
         const topic = payload.title || `${type} Session`
         const formattedMode = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
         const existingSession = await pool.query("SELECT id FROM study_sessions WHERE file_id = $1 AND mode = $2", [fileId, formattedMode]);
-        if(existingSession.rows.length > 0){
+        if (existingSession.rows.length > 0) {
             console.log(`[Worker] Study session for file ${fileId} and mode ${formattedMode} already exists. Skipping duplicate insert.`);
-        } else{
+        } else {
             await pool.query("INSERT INTO study_sessions(user_id, file_id, mode, topic, score, passed, payload) VALUES($1, $2, $3, $4, $5, $6, $7)", [userId, fileId, formattedMode, topic, 0, false, JSON.stringify(payload)])
         }
     },
-    {connection: redisConnection}
+    { connection: redisConnection }
 )
 
 pdfWorker.on("failed", (job, err) => {

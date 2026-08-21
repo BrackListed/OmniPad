@@ -13,6 +13,7 @@ import fs from "fs"
 import crypto from "crypto";
 import Groq from "groq-sdk";
 import { file } from "./db/schema.js"
+import "./worker.js"
 const app = express()
 const pool = new Pool({connectionString: process.env.DATABASE_URL})
 const db = drizzle(process.env.DATABASE_URL!)

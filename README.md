@@ -87,7 +87,7 @@ flowchart TD
 
 - Node.js 20+
 - A PostgreSQL database (local, [Neon](https://neon.tech), [Supabase](https://supabase.com), etc.)
-- A Redis instance reachable at `localhost:6379` (the queue connection is currently hardcoded — see `redisOptions` in `backend/index.ts` and `backend/worker.js`)
+- A Redis instance reachable via `REDIS_URL` (see `redisConnection` in `backend/index.ts` and `backend/worker.ts`)
 - A [Clerk](https://clerk.com) application (publishable key, secret key, webhook signing secret)
 - A [Groq](https://console.groq.com) API key
 
@@ -133,16 +133,15 @@ npx drizzle-kit push
 docker run -p 6379:6379 redis
 ```
 
-### 5. Run all three processes
+### 5. Run both processes
+
+The background worker (PDF parsing + question generation) starts in-process alongside the API server — no separate process to run.
 
 ```bash
-# Terminal 1 — API server
+# Terminal 1 — API server + worker
 cd backend && npx tsx index.ts
 
-# Terminal 2 — background worker (PDF parsing + question generation)
-cd backend && node worker.js
-
-# Terminal 3 — frontend
+# Terminal 2 — frontend
 cd frontend && npm run dev
 ```
 

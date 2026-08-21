@@ -17,13 +17,14 @@ const ioredis_1 = __importDefault(require("ioredis"));
 const fs_1 = __importDefault(require("fs"));
 const crypto_1 = __importDefault(require("crypto"));
 const groq_sdk_1 = __importDefault(require("groq-sdk"));
+require("./worker.js");
 const app = (0, express_1.default)();
 const pool = new pg_1.Pool({ connectionString: process.env.DATABASE_URL });
 const db = (0, node_postgres_1.drizzle)(process.env.DATABASE_URL);
 // Dynamically handles your local dev or your deployed Render frontend URL
 const allowedOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
 app.use((0, cors_1.default)({
-    origin: [allowedOrigin],
+    origin: [allowedOrigin, 'https://omni-pad-sepia.vercel.app', 'http://localhost:5173'],
     credentials: true
 }));
 app.post('/webhooks/clerk', express_1.default.raw({ type: 'application/json' }), async (req, res) => {
@@ -44,7 +45,8 @@ app.post('/webhooks/clerk', express_1.default.raw({ type: 'application/json' }),
 app.use((0, express_2.clerkMiddleware)());
 app.use(express_1.default.json());
 const redisConnection = new ioredis_1.default(process.env.REDIS_URL, { maxRetriesPerRequest: null });
-async function waitForJob(job, timeoutMs = 60000, intervalMs = 300) {
+redisConnection.on("error", (err) => console.error("[API] Redis connection error:", err.message));
+async function waitForJob(job, timeoutMs = 120000, intervalMs = 300) {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
         const state = await job.getState();
@@ -133,13 +135,21 @@ app.post('/upload/file/:userId', upload.single('file'), async (req, res) => {
     const fileHash = crypto_1.default.createHash(`sha256`).update(fileBuffer).digest('hex');
     const existingFile = await pool.query("SELECT id, path FROM file WHERE user_id = $1 and file_hash = $2", [id.rows[0].id, fileHash]);
     if (existingFile.rows.length > 0) {
-        if (fs_1.default.existsSync(file.path)) {
-            fs_1.default.unlinkSync(file.path);
+        if (fs_1.default.existsSync(existingFile.rows[0].path)) {
+            if (fs_1.default.existsSync(file.path)) {
+                fs_1.default.unlinkSync(file.path);
+            }
+            return res.status(200).json({
+                message: "Duplicate file detected. Reusing existing file record.",
+                id: existingFile.rows[0].id,
+                path: existingFile.rows[0].path
+            });
         }
+        await pool.query("UPDATE file SET path = $1 WHERE id = $2", [file.path, existingFile.rows[0].id]);
         return res.status(200).json({
-            message: "Duplicate file detected. Reusing existing file record.",
+            message: "Existing file was missing on disk. Recreated from new upload.",
             id: existingFile.rows[0].id,
-            path: existingFile.rows[0].path
+            path: file.path
         });
     }
     const result = await pool.query("INSERT INTO file(filename, user_id, path, file_hash) VALUES($1, $2, $3, $4) RETURNING id, path", [file?.originalname, id.rows[0].id, file.path, fileHash]);
@@ -165,7 +175,7 @@ app.post("/generate/session/:userId", async (req, res) => {
     }
     catch (err) {
         console.error('Study session generation failed:', err);
-        return res.status(500).json({ message: "Failed to generate study session" });
+        return res.status(500).json({ message: "Failed to generate study session", error: err instanceof Error ? err.message : String(err) });
     }
     return res.status(200).json({ message: "Study session ready", fileId: fileId });
 });
@@ -194,7 +204,7 @@ app.post("/study-session/reshuffle/:userId/:sessionId", async (req, res) => {
     }
     catch (err) {
         console.error('Reshuffle failed:', err);
-        return res.status(500).json({ message: "Failed to reshuffle study session" });
+        return res.status(500).json({ message: "Failed to reshuffle study session", error: err instanceof Error ? err.message : String(err) });
     }
     return res.status(200).json({ message: "Study session reshuffled", fileId: fileId, type: mode });
 });
