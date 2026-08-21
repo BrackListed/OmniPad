@@ -52,7 +52,7 @@ app.use(express.json())
 
 const redisConnection = new IORedis(process.env.REDIS_URL!, {maxRetriesPerRequest: null})
 
-async function waitForJob(job: Awaited<ReturnType<Queue['add']>>, timeoutMs = 60000, intervalMs = 300) {
+async function waitForJob(job: Awaited<ReturnType<Queue['add']>>, timeoutMs = 120000, intervalMs = 300) {
   const start = Date.now()
   while (Date.now() - start < timeoutMs) {
     const state = await job.getState()
@@ -187,7 +187,7 @@ app.post("/generate/session/:userId", async(req, res) => {
     await waitForJob(job)
   } catch (err) {
     console.error('Study session generation failed:', err)
-    return res.status(500).json({message: "Failed to generate study session"})
+    return res.status(500).json({message: "Failed to generate study session", error: err instanceof Error ? err.message : String(err)})
   }
   return res.status(200).json({message: "Study session ready", fileId: fileId})
 })
@@ -218,7 +218,7 @@ app.post("/study-session/reshuffle/:userId/:sessionId", async(req, res) => {
     await waitForJob(job)
   } catch (err) {
     console.error('Reshuffle failed:', err)
-    return res.status(500).json({message: "Failed to reshuffle study session"})
+    return res.status(500).json({message: "Failed to reshuffle study session", error: err instanceof Error ? err.message : String(err)})
   }
   return res.status(200).json({message: "Study session reshuffled", fileId: fileId, type: mode})
 })
