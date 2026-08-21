@@ -21,7 +21,7 @@ const db = drizzle(process.env.DATABASE_URL!)
 const allowedOrigin = process.env.FRONTEND_URL || "http://localhost:5173" 
 
 app.use(cors({
-  origin: [allowedOrigin, 'https://omni-pad-sepia.vercel.app'], 
+  origin: [allowedOrigin, 'https://omni-pad-sepia.vercel.app', 'http://localhost:5173'], 
   credentials: true
 }))
 

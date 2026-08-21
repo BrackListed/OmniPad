@@ -152,6 +152,34 @@ Then open **http://localhost:5173**.
 
 ---
 
+## 📸 Screenshots
+
+### Dashboard
+![Dashboard](docs/Dashboard.png)
+
+### Calendar
+![Calendar](docs/Calendar.png)
+
+### Study Hub
+![Study Hub](docs/Study-Hub.png)
+
+### History Analytics
+![History Analytics](docs/History-Analytics.png)
+
+### Feynman Reviewer
+![Feynman Reviewer](docs/Feynman.png)
+
+### Socratic Reviewer
+![Socratic Reviewer](docs/Socratic.png)
+
+### Quiz Reviewer
+![Quiz Reviewer](docs/Quiz.png)
+
+### Flashcards Reviewer
+![Flashcards Reviewer](docs/Flashcards.png)
+
+---
+
 ## 🌐 Live Demo
 
 **[https://omni-pad-sepia.vercel.app/]**
