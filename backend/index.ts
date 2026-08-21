@@ -163,7 +163,8 @@ app.post("/generate/session/:userId", async(req, res) => {
   const {userId} = req.params
   const id = await pool.query("SELECT id FROM users WHERE clerk_user_id = $1", [userId])
   const {type, fileId, path} = req.body
-
+  const cleanPath = path.startsWith('uploads/') ? path.slice(8) 
+  : path;
   const existingSession = await pool.query("SELECT id FROM study_sessions WHERE file_id = $1 AND mode = $2 AND user_id = $3", [fileId, type, id.rows[0].id])
   if(existingSession.rows.length > 0){
     return res.status(200).json({message: "Study session already exists", fileId: fileId})
@@ -173,7 +174,7 @@ app.post("/generate/session/:userId", async(req, res) => {
     fileId: fileId,
     userId: id.rows[0].id,
     type: type,
-    filePath: path
+    filePath: cleanPath
   })
   try {
     await waitForJob(job)
