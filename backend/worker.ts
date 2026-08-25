@@ -13,7 +13,7 @@ redisConnection.on("connect", () => console.log("[Worker] Connected to Redis"))
 redisConnection.on("error", (err) => console.error("[Worker] Redis connection error:", err.message))
 
 function getPrompt(type: string) {
-    const baseInstruction = "You are an AI study assistant. Extract concepts from the provided text and output ONLY valid JSON adhering strictly to the required schema. Do not include markdown code block formatting (like ```json) in your final response if JSON mode is enabled.";
+    const baseInstruction = "You are an AI study assistant. Extract concepts from the provided text and output ONLY valid JSON adhering strictly to the required schema. Do not include markdown code block formatting (like ```json) in your final response if JSON mode is enabled. Generate as many questions as needed in order to cover the entire module at least twice. Do not generate questions without giving context, for example 'What is the speed of the car' without any context.";
     switch (type) {
         case "Feynman":
             return `${baseInstruction}
