@@ -3,10 +3,10 @@ import { ModulePipeline } from "../components/ui/studyhub/ModulePipeline";
 
 export function StudyHub() {
   return (
-    <div className="flex min-h-screen bg-[#0b0b12]">
+    <div className="flex min-h-screen flex-col bg-[#0b0b12] md:flex-row">
       <LeftSidebar />
 
-      <main className="flex flex-1 flex-col p-8">
+      <main className="flex flex-1 flex-col p-4 sm:p-8">
         <div>
           <h1 className="text-2xl font-semibold text-white">Study Hub</h1>
           <p className="mt-1 text-sm text-zinc-400">

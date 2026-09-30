@@ -60,7 +60,7 @@ export function FeatureCard({
   return (
     <div
       id={id}
-      className={`flex flex-col rounded-2xl border bg-[#12121a] p-5 transition-opacity ${style.border} ${
+      className={`flex w-full flex-col rounded-2xl border bg-[#12121a] p-5 transition-opacity ${style.border} ${
         locked && !loading ? "opacity-50" : "opacity-100"
       }`}
     >

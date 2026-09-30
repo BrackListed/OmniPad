@@ -122,7 +122,7 @@ export function Calendar() {
   }
 
   return (
-    <div className="flex h-screen bg-[#0b0b12]">
+    <div className="flex h-screen flex-col bg-[#0b0b12] md:flex-row">
       <LeftSidebar />
 
       <div className="flex flex-1 flex-col overflow-hidden">

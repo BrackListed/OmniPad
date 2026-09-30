@@ -37,12 +37,12 @@ interface fileType {
 let lastSelectedFile: { id: string; path: string; filename: string } | null = null
 
 export function ModulePipeline() {
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [status, setStatus] = useState<PipelineStatus>("idle");
+  const [fileName, setFileName] = useState<string | null>(() => lastSelectedFile?.filename ?? null);
+  const [status, setStatus] = useState<PipelineStatus>(() => (lastSelectedFile ? "processing" : "idle"));
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [filePath, setFilePath] = useState("")
-  const [fileId, setFileId] = useState("")
+  const [filePath, setFilePath] = useState(() => lastSelectedFile?.path ?? "")
+  const [fileId, setFileId] = useState(() => lastSelectedFile?.id ?? "")
   const {getToken, userId} = useAuth()
   const [fileList, setFileList] = useState<fileType[]>([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -111,14 +111,6 @@ export function ModulePipeline() {
     pendingCardIndexRef.current = null
   }, [status])
 
-  useEffect(() => {
-    if(lastSelectedFile && status === "idle"){
-      setFileId(lastSelectedFile.id)
-      setFilePath(lastSelectedFile.path)
-      startProcessing(lastSelectedFile.filename)
-    }
-  }, [])
-
   const fetchFiles = useCallback(async () => {
     if(!userId) return
     const token = await getToken()
@@ -185,7 +177,7 @@ export function ModulePipeline() {
             if (file && status === "idle") startProcessing(file.name);
           }}
           disabled={status !== "idle"}
-          className={`flex w-full flex-1 flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-8 text-center transition-colors sm:max-w-md ${
+          className={`flex w-full flex-1 flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-6 text-center sm:p-8 transition-colors sm:max-w-md ${
             isDraggingOver ? "border-violet-500 bg-violet-500/10" : "border-white/15 bg-[#12121a]"
           } ${status === "idle" ? "cursor-pointer hover:border-violet-500/50" : "cursor-default"}`}
         >
@@ -305,10 +297,10 @@ export function ModulePipeline() {
       </div>
 
       <div className="relative w-full">
-        <div className="absolute left-[12.5%] right-[12.5%] top-0 hidden h-px bg-white/15 sm:block" />
-        <div id="mode-cards" className="grid grid-cols-1 gap-4 pt-4 sm:grid-cols-4">
+        <div className="absolute left-[12.5%] right-[12.5%] top-0 hidden h-px bg-white/15 lg:block" />
+        <div id="mode-cards" className="grid grid-cols-1 gap-4 pt-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="flex flex-col items-center gap-2">
-            <div className="hidden h-4 w-px bg-white/15 sm:block" />
+            <div className="hidden h-4 w-px bg-white/15 lg:block" />
             <FeatureCard
               id="feynman-card"
               icon={Brain}
@@ -325,7 +317,7 @@ export function ModulePipeline() {
             />
           </div>
           <div className="flex flex-col items-center gap-2">
-            <div className="hidden h-4 w-px bg-white/15 sm:block" />
+            <div className="hidden h-4 w-px bg-white/15 lg:block" />
             <FeatureCard
               id="socratic-card"
               icon={Landmark}
@@ -343,7 +335,7 @@ export function ModulePipeline() {
             />
           </div>
           <div className="flex flex-col items-center gap-2">
-            <div className="hidden h-4 w-px bg-white/15 sm:block" />
+            <div className="hidden h-4 w-px bg-white/15 lg:block" />
             <FeatureCard
               id="quiz-card"
               icon={Target}
@@ -361,7 +353,7 @@ export function ModulePipeline() {
             />
           </div>
           <div className="flex flex-col items-center gap-2">
-            <div className="hidden h-4 w-px bg-white/15 sm:block" />
+            <div className="hidden h-4 w-px bg-white/15 lg:block" />
             <FeatureCard
               id="flashcards-card"
               icon={SquareStack}

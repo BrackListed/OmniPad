@@ -105,7 +105,7 @@ export function FlashcardsComponent({type, fileId}: FlashcardsProps){
 
     if(loading){
         return(
-            <div className="flex min-h-screen bg-[#0b0b12]">
+            <div className="flex min-h-screen flex-col bg-[#0b0b12] md:flex-row">
                 <LeftSidebar />
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 py-24">
                     <Loader2 className="h-8 w-8 animate-spin text-violet-400" strokeWidth={2} />
@@ -121,12 +121,12 @@ export function FlashcardsComponent({type, fileId}: FlashcardsProps){
 
     if(showIntro){
         return(
-            <div className="flex min-h-screen bg-[#0b0b12]">
+            <div className="flex min-h-screen flex-col bg-[#0b0b12] md:flex-row">
                 <LeftSidebar />
-                <main className="flex flex-1 items-center justify-center p-8">
-                    <section className="w-full max-w-2xl rounded-3xl border border-violet-500/20 bg-[#11111a]/90 p-8 text-center shadow-[0_24px_50px_-35px_rgba(46,16,101,0.75)]">
+                <main className="flex flex-1 items-center justify-center p-4 sm:p-8">
+                    <section className="w-full max-w-2xl rounded-3xl border border-violet-500/20 bg-[#11111a]/90 p-5 sm:p-8 text-center shadow-[0_24px_50px_-35px_rgba(46,16,101,0.75)]">
                         <p className="text-xs uppercase tracking-[0.2em] text-violet-300">{session?.type ?? type}</p>
-                        <h1 className="mt-3 text-3xl font-semibold text-white">Topic: {session?.title ?? "Untitled"}</h1>
+                        <h1 className="mt-3 text-2xl sm:text-3xl font-semibold text-white">Topic: {session?.title ?? "Untitled"}</h1>
                         <p className="mt-3 text-sm text-zinc-400">Review one flashcard at a time. Flip for the back side.</p>
 
                         <button
@@ -143,14 +143,14 @@ export function FlashcardsComponent({type, fileId}: FlashcardsProps){
     }
 
     return(
-        <div className="relative flex min-h-screen overflow-hidden bg-[#0b0b12]">
+        <div className="relative flex min-h-screen flex-col overflow-hidden bg-[#0b0b12] md:flex-row">
             <LeftSidebar />
 
-            <main className="relative z-10 flex flex-1 flex-col p-8">
-                <section className="rounded-3xl border border-violet-500/20 bg-[#11111a]/90 p-6 shadow-[0_24px_50px_-35px_rgba(46,16,101,0.75)] backdrop-blur">
-                    <div className="flex items-center justify-between gap-4">
+            <main className="relative z-10 flex flex-1 flex-col p-4 sm:p-8">
+                <section className="rounded-3xl border border-violet-500/20 bg-[#11111a]/90 p-4 sm:p-6 shadow-[0_24px_50px_-35px_rgba(46,16,101,0.75)] backdrop-blur">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
                         <div>
-                            <h1 className="text-3xl font-semibold tracking-tight text-white">Flashcards Reviewer</h1>
+                            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">Flashcards Reviewer</h1>
                             <p className="mt-1 text-sm text-zinc-400">Topic: {session?.title ?? "Untitled"}</p>
                         </div>
 
@@ -171,7 +171,7 @@ export function FlashcardsComponent({type, fileId}: FlashcardsProps){
                     </p>
                 </section>
 
-                <section className="mt-6 rounded-3xl border border-violet-500/20 bg-[#141420]/95 p-6 shadow-[0_28px_60px_-40px_rgba(46,16,101,0.8)]">
+                <section className="mt-6 rounded-3xl border border-violet-500/20 bg-[#141420]/95 p-4 sm:p-6 shadow-[0_28px_60px_-40px_rgba(46,16,101,0.8)]">
                     {currentCard ? (
                         <>
                             <p className="text-xs uppercase tracking-[0.18em] text-zinc-500"><MathText text={currentCard.concept ?? "Flashcard"} /></p>
@@ -180,11 +180,11 @@ export function FlashcardsComponent({type, fileId}: FlashcardsProps){
                                 id="flashcard-card"
                                 type="button"
                                 onClick={() => setShowBack((previous) => !previous)}
-                                className="mt-4 mx-auto flex w-full max-w-md aspect-3/4 flex-col rounded-3xl border border-violet-400/30 bg-[#0f0f17] p-7 text-left transition hover:border-violet-300/45 hover:bg-[#121220]"
+                                className="mt-4 mx-auto flex w-full max-w-md aspect-3/4 flex-col rounded-3xl border border-violet-400/30 bg-[#0f0f17] p-5 sm:p-7 text-left transition hover:border-violet-300/45 hover:bg-[#121220]"
                             >
                                 <p className="text-xs uppercase tracking-[0.2em] text-violet-300">{showBack ? "Back" : "Front"}</p>
                                 <div className="mt-4 flex flex-1 items-center">
-                                    <h2 className="text-3xl font-medium leading-tight text-white">
+                                    <h2 className="text-2xl sm:text-3xl font-medium leading-tight text-white">
                                         <MathText
                                             text={showBack
                                                 ? (currentCard.back ?? "No back text")

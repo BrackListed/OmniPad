@@ -31,7 +31,7 @@ export function Dictaphone({ value, onChange, placeholder }: DictaphoneProps) {
                 onChange={(event) => { if (!listening) onChange(event.target.value) }}
                 readOnly={listening}
                 placeholder={placeholder}
-                className="min-h-72 w-full rounded-2xl border border-white/10 bg-[#0f0f17] px-4 py-3 text-base text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-violet-400"
+                className="min-h-48 w-full sm:min-h-72 rounded-2xl border border-white/10 bg-[#0f0f17] px-4 py-3 text-base text-zinc-100 outline-none transition-colors placeholder:text-zinc-500 focus:border-violet-400"
             />
 
             <div className="mt-3 flex items-center gap-3">

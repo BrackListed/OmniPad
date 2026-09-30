@@ -77,12 +77,12 @@ export function Dashboard() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#0b0b12]">
+    <div className="flex min-h-screen flex-col bg-[#0b0b12] md:flex-row">
       <div id="left-sidebar">
         <LeftSidebar />
       </div>
 
-      <main className="flex-1 px-8 py-6">
+      <main className="flex-1 px-4 py-6 sm:px-8">
         <div id = "profile">
           <TopBar />
         </div>
