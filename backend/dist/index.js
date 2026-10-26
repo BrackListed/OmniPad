@@ -26,6 +26,10 @@ app.use((0, cors_1.default)({
     origin: [allowedOrigin, 'https://omni-pad-sepia.vercel.app', 'http://localhost:5173'],
     credentials: true
 }));
+// Lightweight ping the frontend uses to detect Render cold starts
+app.get("/health", (_req, res) => {
+    res.json({ ok: true });
+});
 app.post('/webhooks/clerk', express_1.default.raw({ type: 'application/json' }), async (req, res) => {
     try {
         const evt = await (0, webhooks_1.verifyWebhook)(req);
@@ -150,6 +154,8 @@ app.post("/generate/session/:userId", async (req, res) => {
     const { userId } = req.params;
     const id = await pool.query("SELECT id FROM users WHERE clerk_user_id = $1", [userId]);
     const { type, fileId, path } = req.body;
+    const cleanPath = path.startsWith('uploads/') ? path.slice(8)
+        : path;
     const existingSession = await pool.query("SELECT id FROM study_sessions WHERE file_id = $1 AND mode = $2 AND user_id = $3", [fileId, type, id.rows[0].id]);
     if (existingSession.rows.length > 0) {
         return res.status(200).json({ message: "Study session already exists", fileId: fileId });
@@ -159,7 +165,7 @@ app.post("/generate/session/:userId", async (req, res) => {
         fileId: fileId,
         userId: id.rows[0].id,
         type: type,
-        filePath: path
+        filePath: cleanPath
     });
     try {
         await waitForJob(job);

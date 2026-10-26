@@ -27,6 +27,11 @@ app.use(cors({
 
 
 
+// Lightweight ping the frontend uses to detect Render cold starts
+app.get("/health", (_req, res) => {
+  res.json({ ok: true })
+})
+
 app.post('/webhooks/clerk', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
     const evt = await verifyWebhook(req)

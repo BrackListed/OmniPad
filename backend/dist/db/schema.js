@@ -27,7 +27,7 @@ exports.file = (0, pg_core_1.pgTable)("file", {
     upload_date: (0, pg_core_1.timestamp)("upload_date", { withTimezone: true }).defaultNow(),
     user_id: (0, pg_core_1.uuid)("user_id").references(() => exports.users.id, { onDelete: "cascade" }),
     path: (0, pg_core_1.text)('path'),
-    file_hash: (0, pg_core_1.text)("file_hash").unique(),
+    file_hash: (0, pg_core_1.text)("file_hash"),
     completed: (0, pg_core_1.boolean)("completed").default(false)
 });
 exports.study_sessions = (0, pg_core_1.pgTable)("study_sessions", {
