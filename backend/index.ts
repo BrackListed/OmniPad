@@ -139,13 +139,13 @@ app.post('/upload/file/:userId', upload.single('file'), async(req, res) => {
   const userDbId = id.rows[0].id
   const fileHash = crypto.createHash(`sha256`).update(file.buffer).digest('hex')
   const storagePath = `${userDbId}/${fileHash}.pdf`
-
   const { error: uploadError } = await supabase.storage.from(PDF_BUCKET).upload(storagePath, file.buffer, {
     contentType: file.mimetype || "application/pdf",
     upsert: true
   })
   if(uploadError){
     console.error("Failed to upload file to Supabase Storage:", uploadError)
+    console.log("Storage Path: ", storagePath)
     return res.status(500).json({error: "Failed to upload file"})
   }
 
